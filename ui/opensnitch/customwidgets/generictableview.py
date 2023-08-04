@@ -56,7 +56,7 @@ class GenericTableModel(QStandardItemModel):
     def data(self, index, role=Qt.DisplayRole):
         """Paint rows with the data stored in self.items
         """
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in [Qt.DisplayRole, Qt.EditRole]:
             items_count = len(self.items)
             if index.isValid() and items_count > 0 and index.row() < items_count:
                 return self.items[index.row()][index.column()]
@@ -67,8 +67,9 @@ class GenericTableModel(QStandardItemModel):
         self.headerLabels = []
         self.removeColumns(0, self.lastColumnCount)
         self.setHorizontalHeaderLabels(self.headerLabels)
-        for col in range(0, newColumns):
-            self.headerLabels.append(self.realQuery.record().fieldName(col))
+        self.headerLabels.extend(
+            self.realQuery.record().fieldName(col) for col in range(0, newColumns)
+        )
         self.lastColumnCount = newColumns
         self.setHorizontalHeaderLabels(self.headerLabels)
         self.setColumnCount(len(self.headerLabels))
@@ -142,7 +143,7 @@ class GenericTableModel(QStandardItemModel):
         self.items = []
         cols = []
         #don't trigger setItem's signals for each cell, instead emit dataChanged for all cells
-        for x in range(0, upperBound):
+        for _ in range(0, upperBound):
             q.next()
             if q.at() < 0:
                 # if we don't set query to a valid record here, it gets stucked
@@ -150,10 +151,7 @@ class GenericTableModel(QStandardItemModel):
                 q.seek(upperBound)
                 break
             rowsLabels.append(str(q.at()+1))
-            cols = []
-            for col in range(0, len(self.headerLabels)):
-                cols.append(str(q.value(col)))
-
+            cols = [str(q.value(col)) for col in range(0, len(self.headerLabels))]
             self.items.append(cols)
 
         self.setVerticalHeaderLabels(rowsLabels)
@@ -171,9 +169,7 @@ class GenericTableModel(QStandardItemModel):
             q.next()
             if q.at() == QSql.AfterLastRow:
                 break
-            row = []
-            for col in range(0, len(self.headerLabels)):
-                row.append(q.value(col))
+            row = [q.value(col) for col in range(0, len(self.headerLabels))]
             rows.append(row)
         return rows
 
@@ -185,9 +181,7 @@ class GenericTableModel(QStandardItemModel):
             self.realQuery.next()
             if self.realQuery.at() == QSql.AfterLastRow or len(rows) >= end:
                 break
-            row = []
-            for col in range(0, len(self.headerLabels)):
-                row.append(self.realQuery.value(col))
+            row = [self.realQuery.value(col) for col in range(0, len(self.headerLabels))]
             rows.append(row)
         self.realQuery.seek(lastAt)
         return rows
@@ -231,13 +225,13 @@ class GenericTableView(QTableView):
             return
 
         item = self.indexAt(event.pos())
-        if item == None and self.curSelection == None:
+        if item is None and self.curSelection is None:
             return
-        elif item != None and self.curSelection == None:
+        elif item != None and self.curSelection is None:
             # force selecting the row below
             self.curSelection = ""
         clickedItem = self.model().index(item.row(), 0)
-        if clickedItem == None:
+        if clickedItem is None:
             return
 
         if clickedItem.data() == self.curSelection:
@@ -295,7 +289,7 @@ class GenericTableView(QTableView):
 
     def onRowCountChanged(self):
         totalCount = self.model().totalRowCount
-        self.vScrollBar.setVisible(True if totalCount > self.maxRowsInViewport else False)
+        self.vScrollBar.setVisible(totalCount > self.maxRowsInViewport)
 
         self.vScrollBar.setMinimum(0)
         # we need to substract the displayed rows to the total rows, to scroll
@@ -309,15 +303,12 @@ class GenericTableView(QTableView):
         self.selectionModel().clearCurrentIndex()
 
     def copySelection(self):
-        selection = self.selectedIndexes()
-        if selection:
+        if selection := self.selectedIndexes():
             rows = sorted(index.row() for index in selection)
             rowcount = rows[-1] - rows[0] + 1
-            table = self.model().copySelectedRows(
-                selection[0].row() + self.vScrollBar.value() - 1,
-                rowcount)
-            return table
-
+            return self.model().copySelectedRows(
+                selection[0].row() + self.vScrollBar.value() - 1, rowcount
+            )
         return None
 
     def getCurrentIndex(self):

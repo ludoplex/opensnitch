@@ -39,10 +39,8 @@ class AddressTableModel(GenericTableModel):
         queryColumns = self.realQuery.record().count()
         if self.asndb.is_available() and queryColumns < 3:
             self.reconfigureColumns()
-        else:
-            # update view's columns
-            if queryColumns != self.lastColumnCount:
-                self.setModelColumns(queryColumns)
+        elif queryColumns != self.lastColumnCount:
+            self.setModelColumns(queryColumns)
 
         self.prevQueryStr = self.origQueryStr
         self.rowCountChanged.emit()

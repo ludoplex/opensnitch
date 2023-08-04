@@ -16,7 +16,9 @@ from opensnitch.notifications import DesktopNotifications
 
 from opensnitch import ui_pb2, auth
 
-DIALOG_UI_PATH = "%s/../res/preferences.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = (
+    f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/preferences.ui"
+)
 class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     LOG_TAG = "[Preferences] "
@@ -136,9 +138,9 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             var_run_path = "/var{0}".format(run_path)
             self.comboNodeAddress.addItem("unix:///tmp/osui.sock")
             if os.path.exists(run_path):
-                self.comboNodeAddress.addItem("unix://%s/osui.sock" % run_path)
+                self.comboNodeAddress.addItem(f"unix://{run_path}/osui.sock")
             if os.path.exists(var_run_path):
-                self.comboNodeAddress.addItem("unix://%s/osui.sock" % var_run_path)
+                self.comboNodeAddress.addItem(f"unix://{var_run_path}/osui.sock")
 
             self._node_list = self._nodes.get()
             for addr in self._node_list:
@@ -148,7 +150,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 self._reset_node_settings()
                 self._set_status_message(QC.translate("preferences", "There're no nodes connected"))
         except Exception as e:
-            print(self.LOG_TAG + "exception loading nodes:", e)
+            print(f"{self.LOG_TAG}exception loading nodes:", e)
 
         self._load_settings()
 
@@ -186,7 +188,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 self.comboUILang.addItem(langNames[idx].capitalize(), langs[idx])
             self.comboUILang.blockSignals(False)
         except Exception as e:
-            print(self.LOG_TAG + "exception loading languages:", e)
+            print(f"{self.LOG_TAG}exception loading languages:", e)
 
     def _load_themes(self):
         self.comboUITheme.blockSignals(True)
@@ -224,8 +226,9 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
         self.checkAutostart.setChecked(self._autostart.isEnabled())
 
-        maxmsgsize = self._cfg.getSettings(Config.DEFAULT_SERVER_MAX_MESSAGE_LENGTH)
-        if maxmsgsize:
+        if maxmsgsize := self._cfg.getSettings(
+            Config.DEFAULT_SERVER_MAX_MESSAGE_LENGTH
+        ):
             self.comboGrpcMsgSize.setCurrentText(maxmsgsize)
         else:
             self.comboGrpcMsgSize.setCurrentIndex(0)
@@ -241,8 +244,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.lineCertKeyFile.setEnabled(False)
         self.comboAuthType.setCurrentIndex(authtype_idx)
 
-        saved_lang = self._cfg.getSettings(Config.DEFAULT_LANGUAGE)
-        if saved_lang:
+        if saved_lang := self._cfg.getSettings(Config.DEFAULT_LANGUAGE):
             saved_langname = self._cfg.getSettings(Config.DEFAULT_LANGNAME)
             self.comboUILang.blockSignals(True)
             self.comboUILang.setCurrentText(saved_langname)
@@ -274,10 +276,14 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         # by default, if no configuration exists, enable notifications.
         self.groupNotifs.setChecked(self._cfg.getBool(Config.NOTIFICATIONS_ENABLED, True))
         self.radioSysNotifs.setChecked(
-            True if self._cfg.getInt(Config.NOTIFICATIONS_TYPE) == Config.NOTIFICATION_TYPE_SYSTEM and self._desktop_notifications.is_available() == True else False
+            self._cfg.getInt(Config.NOTIFICATIONS_TYPE)
+            == Config.NOTIFICATION_TYPE_SYSTEM
+            and self._desktop_notifications.is_available() == True
         )
         self.radioQtNotifs.setChecked(
-            True if self._cfg.getInt(Config.NOTIFICATIONS_TYPE) == Config.NOTIFICATION_TYPE_QT or self._desktop_notifications.is_available() == False else False
+            self._cfg.getInt(Config.NOTIFICATIONS_TYPE)
+            == Config.NOTIFICATION_TYPE_QT
+            or self._desktop_notifications.is_available() == False
         )
 
         self.dbType = self._cfg.getInt(self._cfg.DEFAULT_DB_TYPE_KEY)
@@ -312,10 +318,10 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 self.checkInterceptUnknown.setChecked(node_config['InterceptUnknown'])
                 self.comboNodeLogLevel.setCurrentIndex(int(node_config['LogLevel']))
 
-                if node_config.get('LogUTC') == None:
+                if node_config.get('LogUTC') is None:
                     node_config['LogUTC'] = False
                 self.checkNodeLogUTC.setChecked(node_config['LogUTC'])
-                if node_config.get('LogMicro') == None:
+                if node_config.get('LogMicro') is None:
                     node_config['LogMicro'] = False
                 self.checkNodeLogMicro.setChecked(node_config['LogMicro'])
 
@@ -329,7 +335,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                     self.comboNodeAddress.setEnabled(False)
                     self.comboNodeLogFile.setEnabled(False)
             except Exception as e:
-                print(self.LOG_TAG + "exception loading config: ", e)
+                print(f"{self.LOG_TAG}exception loading config: ", e)
 
     def _load_node_config(self, addr):
         try:
@@ -355,21 +361,21 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             node_config['LogMicro'] = self.checkNodeLogMicro.isChecked()
             node_config['InterceptUnknown'] = self.checkInterceptUnknown.isChecked()
 
-            if node_config.get('Server') != None:
+            if node_config.get('Server') is None:
+                print(addr, " doesn't have Server item")
+            else:
                 # skip setting Server Address if we're applying the config to all nodes
                 node_config['Server']['Address'] = self.comboNodeAddress.currentText()
                 node_config['Server']['LogFile'] = self.comboNodeLogFile.currentText()
-            else:
-                print(addr, " doesn't have Server item")
             return json.dumps(node_config, indent="    "), None
         except Exception as e:
-            print(self.LOG_TAG + "exception loading node config on %s: " % addr, e)
+            print(f"{self.LOG_TAG}exception loading node config on {addr}: ", e)
 
         return None, QC.translate("preferences", "Error loading {0} configuration").format(addr)
 
     def _load_ui_columns_config(self):
         cols = self._cfg.getSettings(Config.STATS_SHOW_COLUMNS)
-        if cols == None:
+        if cols is None:
             return
 
         for c in range(8):
@@ -432,7 +438,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                             self._set_status_error(error)
                             return
                 except Exception as e:
-                    print(self.LOG_TAG + "exception saving config: ", e)
+                    print(f"{self.LOG_TAG}exception saving config: ", e)
                     self._set_status_error(QC.translate("preferences", "Exception saving config: {0}").format(str(e)))
             elif addr == "":
                 self._set_status_message(QC.translate("preferences", "There're no nodes connected"))
@@ -540,7 +546,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self._cfg.setSettings(self._cfg.DEFAULT_TIMEOUT_KEY, 0)
 
     def _save_ui_columns_config(self):
-        cols=list()
+        cols = []
         if self.checkHideTime.isChecked():
             cols.append("0")
         if self.checkHideNode.isChecked():
@@ -579,9 +585,9 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self._notifications_sent[nid] = notifObject
 
         except Exception as e:
-            print(self.LOG_TAG + "exception saving node config on %s: " % addr, e)
+            print(f"{self.LOG_TAG}exception saving node config on {addr}: ", e)
             self._set_status_error(QC.translate("preferences", "Exception saving node config {0}: {1}").format((addr, str(e))))
-            return addr + ": " + str(e)
+            return f"{addr}: {str(e)}"
 
         return None
 
@@ -769,9 +775,7 @@ class PreferencesDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
             if self.radioSysNotifs.isChecked():
                 self._desktop_notifications.show("title", "body")
-            else:
-                pass
         except Exception as e:
-            print(self.LOG_TAG + "exception testing notifications:", e)
+            print(f"{self.LOG_TAG}exception testing notifications:", e)
         finally:
             self.cmdTestNotifs.setEnabled(True)

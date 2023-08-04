@@ -68,7 +68,7 @@ class Highlight():
             for cell in cells:
                 for item in cell:
                     # colors
-                    if (item == Highlight.COLOR or item == Highlight.BGCOLOR):
+                    if item in [Highlight.COLOR, Highlight.BGCOLOR]:
                         if cell[item] != "" and cell[item] is not None:
                             cell[item] = QColor(cell[item])
                         else:
@@ -160,10 +160,7 @@ class Highlight():
         self._last_visited_row = curRow
 
         for row in rows:
-            skip = True
-            for text in row[Highlight.TEXT]:
-                if text in self._rowcells:
-                    skip = False
+            skip = all(text not in self._rowcells for text in row[Highlight.TEXT])
             if skip:
                 continue
 
@@ -226,10 +223,7 @@ class Highlight():
             elif align == Highlight.ALIGN_VCENTER:
                 alignFlags |= QtCore.Qt.AlignVCenter
 
-        if alignFlags == 0:
-            return None
-
-        return alignFlags
+        return None if alignFlags == 0 else alignFlags
 
     def getFont(self, font):
         # TODO

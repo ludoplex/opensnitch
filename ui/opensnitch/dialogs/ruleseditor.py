@@ -20,7 +20,9 @@ from opensnitch.version import version
 from opensnitch.utils import Message, FileDialog, Icons, NetworkInterfaces
 from opensnitch.rules import Rule, Rules
 
-DIALOG_UI_PATH = "%s/../res/ruleseditor.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = (
+    f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/ruleseditor.ui"
+)
 class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     LOG_TAG = "[rules editor]"
@@ -151,22 +153,22 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _cb_select_list_button_clicked(self):
         dirName = FileDialog.select_dir(self, self.dstListsLine.text())
-        if dirName != None and dirName != "":
+        if dirName not in [None, ""]:
             self.dstListsLine.setText(dirName)
 
     def _cb_select_nets_list_button_clicked(self):
         dirName = FileDialog.select_dir(self, self.dstListNetsLine.text())
-        if dirName != None and dirName != "":
+        if dirName not in [None, ""]:
             self.dstListNetsLine.setText(dirName)
 
     def _cb_select_ips_list_button_clicked(self):
         dirName = FileDialog.select_dir(self, self.dstListIPsLine.text())
-        if dirName != None and dirName != "":
+        if dirName not in [None, ""]:
             self.dstListIPsLine.setText(dirName)
 
     def _cb_select_regexp_list_button_clicked(self):
         dirName = FileDialog.select_dir(self, self.dstRegexpListsLine.text())
-        if dirName != None and dirName != "":
+        if dirName not in [None, ""]:
             self.dstRegexpListsLine.setText(dirName)
 
     def _cb_proto_check_toggled(self, state):
@@ -249,7 +251,7 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self._set_status_error(QC.translate("rules", "There's already a rule with this name."))
             return
         elif self.WORK_MODE == self.EDIT_RULE and rule_name != self._old_rule_name and \
-            self._db.get_rule(rule_name, node).next() == True:
+                self._db.get_rule(rule_name, node).next() == True:
             self._set_status_error(QC.translate("rules", "There's already a rule with this name."))
             return
 
@@ -259,7 +261,7 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             return
 
         self._add_rule()
-        if self._old_rule_name != None and self._old_rule_name != self.rule.name:
+        if self._old_rule_name not in [None, self.rule.name]:
             self._delete_rule()
 
         self._old_rule_name = rule_name
@@ -321,10 +323,7 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _is_regex(self, text):
         charset="\\*{[|^?$"
-        for c in charset:
-            if c in text:
-                return True
-        return False
+        return any(c in text for c in charset)
 
     def _is_valid_regex(self, regex):
         try:
@@ -489,7 +488,10 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.dstPortLine.setEnabled(True)
             self.dstPortLine.setText(operator.data)
 
-        if operator.operand == Config.OPERAND_SOURCE_IP or operator.operand == Config.OPERAND_SOURCE_NETWORK:
+        if operator.operand in [
+            Config.OPERAND_SOURCE_IP,
+            Config.OPERAND_SOURCE_NETWORK,
+        ]:
             self.srcIPCheck.setChecked(True)
             self.srcIPCombo.setEnabled(True)
             if operator.data == self.LAN_RANGES:
@@ -499,7 +501,10 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             else:
                 self.srcIPCombo.setCurrentText(operator.data)
 
-        if operator.operand == Config.OPERAND_DEST_IP or operator.operand == Config.OPERAND_DEST_NETWORK:
+        if operator.operand in [
+            Config.OPERAND_DEST_IP,
+            Config.OPERAND_DEST_NETWORK,
+        ]:
             self.dstIPCheck.setChecked(True)
             self.dstIPCombo.setEnabled(True)
             if operator.data == self.LAN_RANGES:
@@ -607,11 +612,9 @@ class RulesEditorDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                 old_rule.name = self._old_rule_name
                 if self.nodeApplyAllCheck.isChecked():
                     nid, noti = self._nodes.delete_rule(rule_name=self._old_rule_name, addr=None, callback=self._notification_callback)
-                    self._notifications_sent[nid] = noti
                 else:
                     nid, noti = self._nodes.delete_rule(self._old_rule_name, node, self._notification_callback)
-                    self._notifications_sent[nid] = noti
-
+                self._notifications_sent[nid] = noti
         except Exception as e:
             print(self.LOG_TAG, "delete_rule() exception: ", e)
 

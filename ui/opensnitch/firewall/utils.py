@@ -9,11 +9,13 @@ class Utils():
         """Return true if the value is valid for a port based rule:
             nft add rule ... tcp dport 22 accept
         """
-        return value == Statements.TCP.value or \
-                value == Statements.UDP.value or \
-                value == Statements.UDPLITE.value or \
-                value == Statements.SCTP.value or \
-                value == Statements.DCCP.value
+        return value in [
+            Statements.TCP.value,
+            Statements.UDP.value,
+            Statements.UDPLITE.value,
+            Statements.SCTP.value,
+            Statements.DCCP.value,
+        ]
 
     @staticmethod
     def isProtobufSupported():

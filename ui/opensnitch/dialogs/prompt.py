@@ -19,7 +19,9 @@ from opensnitch.version import version
 
 from opensnitch import ui_pb2
 
-DIALOG_UI_PATH = "%s/../res/prompt.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = (
+    f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/prompt.ui"
+)
 class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     _prompt_trigger = QtCore.pyqtSignal()
     _tick_trigger = QtCore.pyqtSignal()
@@ -66,7 +68,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         if dialog_geometry == QtCore.QByteArray:
             self.restoreGeometry(dialog_geometry)
 
-        self.setWindowTitle("OpenSnitch v%s" % version)
+        self.setWindowTitle(f"OpenSnitch v{version}")
 
         self._lock = threading.Lock()
         self._con = None
@@ -192,7 +194,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _set_elide_text(self, widget, text, max_size=132):
         if len(text) > max_size:
-            text = text[:max_size] + "..."
+            text = f"{text[:max_size]}..."
 
         widget.setText(text)
 
@@ -278,11 +280,11 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             self.actionButton.setIcon(self._action_icon[action_idx])
 
     def _set_app_description(self, description):
-        if description != None and description != "":
+        if description not in [None, ""]:
             self.appDescriptionLabel.setVisible(True)
             self.appDescriptionLabel.setFixedHeight(50)
             self.appDescriptionLabel.setToolTip(description)
-            self._set_elide_text(self.appDescriptionLabel, "%s" % description)
+            self._set_elide_text(self.appDescriptionLabel, f"{description}")
         else:
             self.appDescriptionLabel.setVisible(False)
             self.appDescriptionLabel.setFixedHeight(0)
@@ -293,14 +295,14 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         # cmdline: telnet 1.1.1.1 (path: /usr/bin/telnet.netkit)
         # cmdline: /usr/bin/telnet.netkit 1.1.1.1 (the binary path is part of the cmdline args, no need to display it)
         if con.process_path != "" and len(con.process_args) >= 1 and con.process_path not in con.process_args:
-            self.appPathLabel.setToolTip("Process path: %s" % con.process_path)
+            self.appPathLabel.setToolTip(f"Process path: {con.process_path}")
             if app_name.lower() == app_args:
-                self._set_elide_text(self.appPathLabel, "%s" % con.process_path)
+                self._set_elide_text(self.appPathLabel, f"{con.process_path}")
             else:
-                self._set_elide_text(self.appPathLabel, "(%s)" % con.process_path)
+                self._set_elide_text(self.appPathLabel, f"({con.process_path})")
             self.appPathLabel.setVisible(True)
         elif con.process_path != "" and len(con.process_args) == 0:
-            self._set_elide_text(self.appPathLabel, "%s" % con.process_path)
+            self._set_elide_text(self.appPathLabel, f"{con.process_path}")
             self.appPathLabel.setVisible(True)
         else:
             self.appPathLabel.setVisible(False)
@@ -327,13 +329,15 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         if app_name == "":
             self.appPathLabel.setVisible(False)
             self.argsLabel.setVisible(False)
-            app_name = QC.translate("popups", "Unknown process %s" % con.process_path)
+            app_name = QC.translate("popups", f"Unknown process {con.process_path}")
             self.appNameLabel.setText(QC.translate("popups", "Outgoing connection"))
         else:
-            self._set_elide_text(self.appNameLabel, "%s" % app_name, max_size=42)
+            self._set_elide_text(self.appNameLabel, f"{app_name}", max_size=42)
             self.appNameLabel.setToolTip(app_name)
 
-        self.cwdLabel.setToolTip("%s %s" % (QC.translate("popups", "Process launched from:"), con.process_cwd))
+        self.cwdLabel.setToolTip(
+            f'{QC.translate("popups", "Process launched from:")} {con.process_cwd}'
+        )
         self._set_elide_text(self.cwdLabel, con.process_cwd, max_size=32)
 
         pixmap = self._get_app_icon(app_icon)
@@ -363,7 +367,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             uid = "%d" % con.user_id
 
         self.uidLabel.setText(uid)
-        self.pidLabel.setText("%s" % con.process_id)
+        self.pidLabel.setText(f"{con.process_id}")
 
         self.whatCombo.clear()
         self.whatIPCombo.clear()
@@ -387,7 +391,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
         self._add_dst_networks_to_combo(self.whatCombo, con.dst_ip)
 
-        if con.dst_host != "" and con.dst_host != con.dst_ip:
+        if con.dst_host not in ["", con.dst_ip]:
             self._add_dsthost_to_combo(con.dst_host)
 
         self.whatIPCombo.addItem(QC.translate("popups", "to {0}").format(con.dst_ip), self.FIELD_DST_IP)
@@ -423,7 +427,7 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     # https://gis.stackexchange.com/questions/86398/how-to-disable-the-escape-key-for-a-dialog
     def keyPressEvent(self, event):
-        if not event.key() == QtCore.Qt.Key_Escape:
+        if event.key() != QtCore.Qt.Key_Escape:
             super(PromptDialog, self).keyPressEvent(event)
 
     # prevent a click on the window's x
@@ -434,16 +438,41 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     def _add_dst_networks_to_combo(self, combo, dst_ip):
         if type(ipaddress.ip_address(dst_ip)) == ipaddress.IPv4Address:
-            combo.addItem(QC.translate("popups", "to {0}").format(ipaddress.ip_network(dst_ip + "/24", strict=False)),  self.FIELD_DST_NETWORK)
-            combo.addItem(QC.translate("popups", "to {0}").format(ipaddress.ip_network(dst_ip + "/16", strict=False)),  self.FIELD_DST_NETWORK)
-            combo.addItem(QC.translate("popups", "to {0}").format(ipaddress.ip_network(dst_ip + "/8", strict=False)),   self.FIELD_DST_NETWORK)
+            combo.addItem(
+                QC.translate("popups", "to {0}").format(
+                    ipaddress.ip_network(f"{dst_ip}/24", strict=False)
+                ),
+                self.FIELD_DST_NETWORK,
+            )
+            combo.addItem(
+                QC.translate("popups", "to {0}").format(
+                    ipaddress.ip_network(f"{dst_ip}/16", strict=False)
+                ),
+                self.FIELD_DST_NETWORK,
+            )
+            combo.addItem(
+                QC.translate("popups", "to {0}").format(
+                    ipaddress.ip_network(f"{dst_ip}/8", strict=False)
+                ),
+                self.FIELD_DST_NETWORK,
+            )
         else:
-            combo.addItem(QC.translate("popups", "to {0}").format(ipaddress.ip_network(dst_ip + "/64", strict=False)),  self.FIELD_DST_NETWORK)
-            combo.addItem(QC.translate("popups", "to {0}").format(ipaddress.ip_network(dst_ip + "/128", strict=False)), self.FIELD_DST_NETWORK)
+            combo.addItem(
+                QC.translate("popups", "to {0}").format(
+                    ipaddress.ip_network(f"{dst_ip}/64", strict=False)
+                ),
+                self.FIELD_DST_NETWORK,
+            )
+            combo.addItem(
+                QC.translate("popups", "to {0}").format(
+                    ipaddress.ip_network(f"{dst_ip}/128", strict=False)
+                ),
+                self.FIELD_DST_NETWORK,
+            )
 
     def _add_dsthost_to_combo(self, dst_host):
-        self.whatCombo.addItem("%s" % dst_host, self.FIELD_DST_HOST)
-        self.whatIPCombo.addItem("%s" % dst_host, self.FIELD_DST_HOST)
+        self.whatCombo.addItem(f"{dst_host}", self.FIELD_DST_HOST)
+        self.whatIPCombo.addItem(f"{dst_host}", self.FIELD_DST_HOST)
 
         parts = dst_host.split('.')[1:]
         nparts = len(parts)
@@ -481,31 +510,31 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         the pop-up dialog. Example:
             curl is connecting to www.opensnitch.io on TCP port 443
         """
-        message = "<b>%s</b>" % app_name
+        message = f"<b>{app_name}</b>"
         if not self._local:
             message = QC.translate("popups", "<b>Remote</b> process %s running on <b>%s</b>") % ( \
-                message,
+                    message,
                 self._peer.split(':')[1])
 
         msg_action = QC.translate("popups", "is connecting to <b>%s</b> on %s port %d") % ( \
-            con.dst_host or con.dst_ip,
+                con.dst_host or con.dst_ip,
             con.protocol.upper(),
             con.dst_port )
 
         # icmp port is 0 (i.e.: no port)
         if con.dst_port == 0:
             msg_action = QC.translate("popups", "is connecting to <b>%s</b>, %s") % ( \
-                con.dst_host or con.dst_ip,
+                    con.dst_host or con.dst_ip,
                 con.protocol.upper() )
 
         if con.dst_port == 53 and con.dst_ip != con.dst_host and con.dst_host != "":
             msg_action = QC.translate("popups", "is attempting to resolve <b>%s</b> via %s, %s port %d") % ( \
-                con.dst_host,
+                    con.dst_host,
                 con.dst_ip,
                 con.protocol.upper(),
                 con.dst_port)
 
-        return "%s %s" % (message, msg_action)
+        return f"{message} {msg_action}"
 
     def _get_duration(self, duration_idx):
         if duration_idx == 0:
@@ -539,10 +568,14 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             return Config.RULE_TYPE_SIMPLE, Config.OPERAND_PROCESS_ID, "{0}".format(self._con.process_id)
 
         elif combo.itemData(what_idx) == self.FIELD_USER_ID:
-            return Config.RULE_TYPE_SIMPLE, Config.OPERAND_USER_ID, "%s" % self._con.user_id
+            return Config.RULE_TYPE_SIMPLE, Config.OPERAND_USER_ID, f"{self._con.user_id}"
 
         elif combo.itemData(what_idx) == self.FIELD_DST_PORT:
-            return Config.RULE_TYPE_SIMPLE, Config.OPERAND_DEST_PORT, "%s" % self._con.dst_port
+            return (
+                Config.RULE_TYPE_SIMPLE,
+                Config.OPERAND_DEST_PORT,
+                f"{self._con.dst_port}",
+            )
 
         elif combo.itemData(what_idx) == self.FIELD_DST_IP:
             return Config.RULE_TYPE_SIMPLE, Config.OPERAND_DEST_IP, self._con.dst_ip
@@ -584,12 +617,12 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
         return self.checkUserID.isChecked() or self.checkDstPort.isChecked() or self.checkDstIP.isChecked()
 
     def _get_rule_name(self, rule):
-        rule_temp_name = slugify("%s %s" % (rule.action, rule.duration))
+        rule_temp_name = slugify(f"{rule.action} {rule.duration}")
         if self._is_list_rule():
-            rule_temp_name = "%s-list" % rule_temp_name
+            rule_temp_name = f"{rule_temp_name}-list"
         else:
-            rule_temp_name = "%s-simple" % rule_temp_name
-        rule_temp_name = slugify("%s %s" % (rule_temp_name, rule.operator.data))
+            rule_temp_name = f"{rule_temp_name}-simple"
+        rule_temp_name = slugify(f"{rule_temp_name} {rule.operator.data}")
 
         return rule_temp_name[:128]
 
@@ -621,15 +654,15 @@ class PromptDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             if self.checkDstIP.isChecked() and self.whatCombo.itemData(what_idx) != self.FIELD_DST_IP:
                 _type, _operand, _data = self._get_combo_operator(self.whatIPCombo, self.whatIPCombo.currentIndex())
                 data.append({"type": _type, "operand": _operand, "data": _data})
-                rule_temp_name = slugify("%s %s" % (rule_temp_name, _data))
+                rule_temp_name = slugify(f"{rule_temp_name} {_data}")
 
             if self.checkDstPort.isChecked() and self.whatCombo.itemData(what_idx) != self.FIELD_DST_PORT:
                 data.append({"type": Config.RULE_TYPE_SIMPLE, "operand": Config.OPERAND_DEST_PORT, "data": str(self._con.dst_port)})
-                rule_temp_name = slugify("%s %s" % (rule_temp_name, str(self._con.dst_port)))
+                rule_temp_name = slugify(f"{rule_temp_name} {str(self._con.dst_port)}")
 
             if self.checkUserID.isChecked() and self.whatCombo.itemData(what_idx) != self.FIELD_USER_ID:
                 data.append({"type": Config.RULE_TYPE_SIMPLE, "operand": Config.OPERAND_USER_ID, "data": str(self._con.user_id)})
-                rule_temp_name = slugify("%s %s" % (rule_temp_name, str(self._con.user_id)))
+                rule_temp_name = slugify(f"{rule_temp_name} {str(self._con.user_id)}")
 
             is_list_rule = self._is_list_rule()
 

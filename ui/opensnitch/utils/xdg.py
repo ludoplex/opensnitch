@@ -13,7 +13,7 @@ def get_runtime_dir(strict=True):
             raise
 
         import getpass
-        fallback = '/tmp/opensnitch-' + getpass.getuser()
+        fallback = f'/tmp/opensnitch-{getpass.getuser()}'
         create = False
 
         try:
@@ -59,8 +59,10 @@ class Autostart():
         desktopFile = 'opensnitch_ui.desktop'
         self.systemDesktop = os.path.join('/usr/share/applications', desktopFile)
         self.systemAutostart = os.path.join('/etc/xdg/autostart', desktopFile)
-        if not os.path.isfile(self.systemAutostart) and os.path.isfile('/usr' + self.systemAutostart):
-            self.systemAutostart = '/usr' + self.systemAutostart
+        if not os.path.isfile(self.systemAutostart) and os.path.isfile(
+            f'/usr{self.systemAutostart}'
+        ):
+            self.systemAutostart = f'/usr{self.systemAutostart}'
         self.userAutostart = os.path.join(xdg_config_home, 'autostart', desktopFile)
 
     def createUserDir(self):
@@ -72,12 +74,8 @@ class Autostart():
     def isEnabled(self):
         ret = False
         if os.path.isfile(self.userAutostart):
-             ret = True
-             lines = open(self.userAutostart, 'r').readlines()
-             for line in lines:
-                 if re.search("^Hidden=true", line, re.IGNORECASE):
-                     ret = False
-                     break
+            lines = open(self.userAutostart, 'r').readlines()
+            ret = not any(re.search("^Hidden=true", line, re.IGNORECASE) for line in lines)
         elif os.path.isfile(self.systemAutostart):
             ret = True
         return ret
@@ -92,16 +90,15 @@ class Autostart():
                     shutil.copyfile(self.systemDesktop, self.userAutostart)
                 except shutil.SameFileError:
                     pass
-        else:
-            if os.path.isfile(self.systemAutostart):
-                try:
-                    shutil.copyfile(self.systemAutostart, self.userAutostart)
-                except shutil.SameFileError:
-                    pass
-                with open(self.userAutostart, 'a') as f:
-                    f.write('Hidden=true\n')
-            elif os.path.isfile(self.userAutostart):
-                os.remove(self.userAutostart)
+        elif os.path.isfile(self.systemAutostart):
+            try:
+                shutil.copyfile(self.systemAutostart, self.userAutostart)
+            except shutil.SameFileError:
+                pass
+            with open(self.userAutostart, 'a') as f:
+                f.write('Hidden=true\n')
+        elif os.path.isfile(self.userAutostart):
+            os.remove(self.userAutostart)
 
     def disable(self):
         self.enable(False)

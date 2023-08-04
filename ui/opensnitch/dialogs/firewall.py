@@ -16,7 +16,9 @@ import opensnitch.firewall as Fw
 import opensnitch.firewall.profiles as FwProfiles
 
 
-DIALOG_UI_PATH = "%s/../res/firewall.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = (
+    f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/firewall.ui"
+)
 class FirewallDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     LOG_TAG = "[fw dialog]"
 
@@ -128,13 +130,12 @@ class FirewallDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
             wantedProfile = FwProfiles.ProfileAcceptOutput.value
             if self.comboOutput.currentIndex() == self.POLICY_DROP:
                 wantedProfile = FwProfiles.ProfileDropOutput.value
-        else:
-            if self.comboInput.currentIndex() == self.POLICY_DROP:
-                wantedProfile = FwProfiles.ProfileDropInput.value
+        elif self.comboInput.currentIndex() == self.POLICY_DROP:
+            wantedProfile = FwProfiles.ProfileDropInput.value
 
 
         if combo == self.COMBO_IN and \
-                self.comboInput.currentIndex() == self.POLICY_ACCEPT:
+                    self.comboInput.currentIndex() == self.POLICY_ACCEPT:
             json_profile = json.dumps(FwProfiles.ProfileDropInput.value)
             for addr in self._nodes.get():
                 fwcfg = self._nodes.get_node(addr)['firewall']
@@ -298,10 +299,7 @@ class FirewallDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
                         ),
             QC.translate("firewall", "Change default firewall to 'nftables' on node {0}?".format(addr)),
             QtWidgets.QMessageBox.Warning)
-        if ret != QtWidgets.QMessageBox.Cancel:
-            return True
-
-        return False
+        return ret != QtWidgets.QMessageBox.Cancel
 
     def enable_fw(self, enable):
         self._disable_widgets(not enable)
@@ -324,7 +322,7 @@ class FirewallDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
         for addr in self._nodes.get():
             fwcfg = self._nodes.get_node(addr)['firewall']
-            fwcfg.Enabled = True if enable else False
+            fwcfg.Enabled = bool(enable)
             self.send_notification(addr, fwcfg)
 
         self.lblStatusIcon.setEnabled(enable)

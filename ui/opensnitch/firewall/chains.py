@@ -7,16 +7,13 @@ class Chains():
         self._nodes = nodes
 
     def get(self):
-        chains = {}
-        for node in self._nodes.get_nodes():
-            chains[node] = self.get_node_chains(node)
-        return chains
+        return {node: self.get_node_chains(node) for node in self._nodes.get_nodes()}
 
     def get_node_chains(self, addr):
         node = self._nodes.get_node(addr)
-        if node == None:
+        if node is None:
             return rules
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return rules
 
         chains = []
@@ -30,9 +27,9 @@ class Chains():
 
     def get_node_chains(self, addr):
         node = self._nodes.get_node(addr)
-        if node == None:
+        if node is None:
             return rules
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return rules
 
         chains = []
@@ -48,8 +45,8 @@ class Chains():
 
     def get_policy(self, node_addr=None, hook=Hooks.INPUT.value, _type=ChainType.FILTER.value, family=Family.INET.value):
         fwcfg = self._nodes.get_node(node_addr)['firewall']
-        for sdx, n in enumerate(fwcfg.SystemRules):
-            for cdx, c in enumerate(n.Chains):
+        for n in fwcfg.SystemRules:
+            for c in n.Chains:
                 if c.Hook.lower() == hook and c.Type.lower() == _type and c.Family.lower() == family:
                     return c.Policy
 

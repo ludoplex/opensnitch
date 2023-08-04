@@ -15,7 +15,7 @@ class Firewall(QObject):
 
     @staticmethod
     def instance():
-        if Firewall.__instance == None:
+        if Firewall.__instance is None:
             Firewall.__instance = Firewall()
         return Firewall.__instance
 
@@ -64,7 +64,7 @@ class Firewall(QObject):
             return None, None
         for addr in self._nodes.get_nodes():
             node = self._nodes.get_node(addr)
-            if not 'fwrules' in node:
+            if 'fwrules' not in node:
                 continue
             r = node['fwrules'].get(uuid)
             if r != None:
@@ -78,17 +78,17 @@ class Firewall(QObject):
         chains = []
         for addr in self._nodes.get_nodes():
             node = self._nodes.get_node(addr)
-            if not 'firewall' in node:
+            if 'firewall' not in node:
                 return chains
             for n in node['firewall'].SystemRules:
                 for c in n.Chains:
                     for r in c.Rules:
                         add_rule = False
                         if nail in c.Family or \
-                                nail in c.Hook or \
-                                nail in r.Description or \
-                                nail in r.Target or \
-                                nail in r.TargetParameters:
+                                    nail in c.Hook or \
+                                    nail in r.Description or \
+                                    nail in r.Target or \
+                                    nail in r.TargetParameters:
                             add_rule = True
                         else:
                             for e in r.Expressions:
@@ -97,9 +97,9 @@ class Firewall(QObject):
                                 expr_vals = "".join("{0} {1}".format(h.Key, h.Value) for h in e.Statement.Values)
                                 print(nail in expr_vals, r.Description)
                                 if nail in e.Statement.Op or \
-                                        nail in e.Statement.Name or \
-                                        nail in e.Statement.Values or \
-                                        nail in expr_vals:
+                                            nail in e.Statement.Name or \
+                                            nail in e.Statement.Values or \
+                                            nail in expr_vals:
                                     add_rule = True
 
                         if add_rule:
@@ -151,24 +151,20 @@ class Firewall(QObject):
             profile = json_format.Parse(json_profile, holder)
 
             fwcfg = self._nodes.get_node(node_addr)['firewall']
-            for sdx, n in enumerate(fwcfg.SystemRules):
-                for cdx, c in enumerate(n.Chains):
+            for n in fwcfg.SystemRules:
+                for c in n.Chains:
                     if c.Hook.lower() == profile.Hook and \
-                            c.Type.lower() == profile.Type and \
-                            c.Family.lower() == profile.Family and \
-                            c.Table.lower() == profile.Table:
+                                c.Type.lower() == profile.Type and \
+                                c.Family.lower() == profile.Family and \
+                                c.Table.lower() == profile.Table:
 
                         if profile.Policy == ProfileDropInput.value:
                             profile.Policy = ProfileAcceptInput.value
 
                         del_candidates = []
                         for rdx, r in enumerate(c.Rules):
-                            for pr in profile.Rules:
-                                if r.UUID == pr.UUID:
-                                    # we cannot delete the rule here, otherwise
-                                    # we'd modify the items of the loop.
-                                    del_candidates.append(rdx)
-                        if len(del_candidates) > 0:
+                            del_candidates.extend(rdx for pr in profile.Rules if r.UUID == pr.UUID)
+                        if del_candidates:
                             for rdx in del_candidates:
                                 if rdx == len(c.Rules): # last rule
                                     rdx = rdx - 1
@@ -185,28 +181,33 @@ class Firewall(QObject):
         """get rules by table"""
         chains = []
         node = self._nodes.get_node(addr)
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return chains
         for n in node['firewall'].SystemRules:
             for c in n.Chains:
-                for r in c.Rules:
-                    if c.Table == table and c.Family == family:
-                        chains.append(Rules.to_array(addr, c, r))
-
+                chains.extend(
+                    Rules.to_array(addr, c, r)
+                    for r in c.Rules
+                    if c.Table == table and c.Family == family
+                )
         return chains
 
     def filter_by_chain(self, addr, table, family, chain, hook):
         """get rules by chain"""
         chains = []
         node = self._nodes.get_node(addr)
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return chains
         for n in node['firewall'].SystemRules:
             for c in n.Chains:
-                for r in c.Rules:
-                    if c.Table == table and c.Family == family and c.Name == chain and c.Hook == hook:
-                        chains.append(Rules.to_array(addr, c, r))
-
+                chains.extend(
+                    Rules.to_array(addr, c, r)
+                    for r in c.Rules
+                    if c.Table == table
+                    and c.Family == family
+                    and c.Name == chain
+                    and c.Hook == hook
+                )
         return chains
 
     def get_node_rules(self, addr):

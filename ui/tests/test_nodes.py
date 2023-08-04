@@ -23,19 +23,27 @@ class NotifTest(QtCore.QObject):
 class TestNodes():
 
     @classmethod
-    def setup_method(self):
-        self.nid = None
-        self.daemon_config = ClientConfig
-        self.nodes = Nodes.instance()
-        self.nodes._db.insert("nodes",
-                              "(addr, status, hostname, daemon_version, daemon_uptime, " \
-                              "daemon_rules, cons, cons_dropped, version, last_connection)",
-                              (
-                                  "1.2.3.4", Nodes.ONLINE, "xxx", "v1.2.3", str(0),
-                                  "", "0", "0", "",
-                                  "2022-01-03 11:22:48.101624"
-                              )
-                              )
+    def setup_method(cls):
+        cls.nid = None
+        cls.daemon_config = ClientConfig
+        cls.nodes = Nodes.instance()
+        cls.nodes._db.insert(
+            "nodes",
+            "(addr, status, hostname, daemon_version, daemon_uptime, "
+            "daemon_rules, cons, cons_dropped, version, last_connection)",
+            (
+                "1.2.3.4",
+                Nodes.ONLINE,
+                "xxx",
+                "v1.2.3",
+                str(0),
+                "",
+                "0",
+                "0",
+                "",
+                "2022-01-03 11:22:48.101624",
+            ),
+        )
 
 
     def test_add(self, qtbot):
@@ -145,5 +153,5 @@ class TestNodes():
         node = self.nodes.get_node("peer:1.2.3.4")
         nodes = self.nodes.get_nodes()
 
-        assert node == None
-        assert nodes.get("peer:1.2.3.4") == None
+        assert node is None
+        assert nodes.get("peer:1.2.3.4") is None

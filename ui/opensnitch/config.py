@@ -151,22 +151,22 @@ class Config:
 
     @staticmethod
     def get():
-        if Config.__instance == None:
+        if Config.__instance is None:
             Config._instance = Config()
         return Config.__instance
 
     def __init__(self):
         self.settings = QtCore.QSettings("opensnitch", "settings")
 
-        if self.settings.value(self.DEFAULT_TIMEOUT_KEY) == None:
+        if self.settings.value(self.DEFAULT_TIMEOUT_KEY) is None:
             self.setSettings(self.DEFAULT_TIMEOUT_KEY, self.DEFAULT_TIMEOUT)
-        if self.settings.value(self.DEFAULT_ACTION_KEY) == None:
+        if self.settings.value(self.DEFAULT_ACTION_KEY) is None:
             self.setSettings(self.DEFAULT_ACTION_KEY, self.ACTION_DENY_IDX)
-        if self.settings.value(self.DEFAULT_DURATION_KEY) == None:
+        if self.settings.value(self.DEFAULT_DURATION_KEY) is None:
             self.setSettings(self.DEFAULT_DURATION_KEY, self.DEFAULT_DURATION_IDX)
-        if self.settings.value(self.DEFAULT_TARGET_KEY) == None:
+        if self.settings.value(self.DEFAULT_TARGET_KEY) is None:
             self.setSettings(self.DEFAULT_TARGET_KEY, self.DEFAULT_TARGET_PROCESS)
-        if self.settings.value(self.DEFAULT_DB_TYPE_KEY) == None:
+        if self.settings.value(self.DEFAULT_DB_TYPE_KEY) is None:
             self.setSettings(self.DEFAULT_DB_TYPE_KEY, Database.DB_TYPE_MEMORY)
             self.setSettings(self.DEFAULT_DB_FILE_KEY, Database.DB_IN_MEMORY)
 

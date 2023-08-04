@@ -35,7 +35,7 @@ class ColorizedQSqlQueryModel(QSqlQueryModel):
         if role == QtCore.Qt.TextAlignmentRole:
             return QtCore.Qt.AlignCenter
         if role == QtCore.Qt.TextColorRole:
-            for _, what in enumerate(self._model_data):
+            for what in self._model_data:
                 d = QSqlQueryModel.data(self, self.index(row, self._model_data[what][1]), QtCore.Qt.DisplayRole)
                 if column == self._model_data[what][1] and what in d:
                     return self._model_data[what][0]
@@ -120,13 +120,13 @@ class ConnectionsTableModel(QStandardItemModel):
         self.maxRowId = 0 if value == '' else int(value)
         self.updateDistinctIfNeeded()
         self.limit = int(q.split(' ')[-1]) if q.split(' ')[-2] == 'LIMIT' else None
-        self.isQueryFilter = True if ("LIKE '%" in q and "LIKE '% %'" not in q) or 'Action = "' in q else False
+        self.isQueryFilter = (
+            "LIKE '%" in q and "LIKE '% %'" not in q
+        ) or 'Action = "' in q
 
         self.realQuery = QSqlQuery(db)
         isTotalRowCountChanged = False
-        isQueryChanged = False
-        if self.prevQueryStr != q:
-            isQueryChanged = True
+        isQueryChanged = self.prevQueryStr != q
         if self.isQueryFilter:
             if isQueryChanged:
                 self.buildMap()
@@ -141,7 +141,7 @@ class ConnectionsTableModel(QStandardItemModel):
                     lowerBound = largestRowIdInMap + offset
                     upperBound = min(lowerBound + self.rangeSize, self.maxRowId)
                     part1, part2 = q.split('ORDER')
-                    qStr = part1 + 'AND rowid>'+ str(lowerBound) + ' AND rowid<=' + str(upperBound) + ' ORDER' + part2
+                    qStr = f'{part1}AND rowid>{str(lowerBound)} AND rowid<={str(upperBound)} ORDER{part2}'
                     self.realQuery.exec(qStr)
                     self.realQuery.last()
                     rowsInRange = max(0, self.realQuery.at()+1)
@@ -184,11 +184,11 @@ class ConnectionsTableModel(QStandardItemModel):
         #we only want to know the count of matching rows
         qStr = "SELECT COUNT(*) from connections WHERE (rowid> :lowerBound AND rowid<= :upperBound)"
         if actionStr:
-            qStr += ' AND ' + actionStr
+            qStr += f' AND {actionStr}'
         matchStr = self.getMatch(filterStr) if filterStr else None
         if matchStr:
-            qStr += ' AND ' + matchStr
-        qStr += ' LIMIT ' + str(self.limit) if self.limit else ''
+            qStr += f' AND {matchStr}'
+        qStr += f' LIMIT {str(self.limit)}' if self.limit else ''
         q.prepare(qStr)
 
         totalRows = 0
@@ -221,8 +221,9 @@ class ConnectionsTableModel(QStandardItemModel):
         q = QSqlQuery(self.db)
         q.setForwardOnly(True)
         for column in self.distinct.keys():
-            q.exec('SELECT DISTINCT ' + column + ' FROM connections WHERE rowid>'
-            + str(self.distinctLastRowId) + ' AND rowid<=' + str(self.maxRowId))
+            q.exec(
+                f'SELECT DISTINCT {column} FROM connections WHERE rowid>{str(self.distinctLastRowId)} AND rowid<={str(self.maxRowId)}'
+            )
             while q.next():
                 if q.value(0) not in self.distinct[column]:
                     self.distinct[column].append(q.value(0))
@@ -239,14 +240,13 @@ class ConnectionsTableModel(QStandardItemModel):
 
         if not self.isQueryFilter:
             part1, part2 = self.origQueryStr.split('ORDER')
-            qStr = part1 + 'WHERE rowid>='+ str(botRowNo) + ' AND rowid<=' + str(topRowNo) + ' ORDER' + part2
+            qStr = f'{part1}WHERE rowid>={str(botRowNo)} AND rowid<={str(topRowNo)} ORDER{part2}'
         else:
             self.updateDistinctIfNeeded(True)
             #replace query part between WHERE and ORDER
             qStr = self.origQueryStr.split('WHERE')[0] + ' WHERE '
-            actionStr = self.getActionStr()
-            if actionStr:
-                qStr += actionStr + " AND "
+            if actionStr := self.getActionStr():
+                qStr += f"{actionStr} AND "
             #find inside the map the range(s) in which top and bottom rows are located
             total, offsetInRange, botRowFound, topRowFound = 0, None, False, False
             ranges = [{'from':0, 'to':0, 'hits':0}]
@@ -268,7 +268,7 @@ class ConnectionsTableModel(QStandardItemModel):
                 total += i['hits']
 
             rangeStr = ''
-            if len(ranges) > 0:
+            if ranges:
                 rangeStr = '('
                 for r in ranges:
                     rangeStr += '(rowid>' + str(r['to']) + ' AND rowid<=' + str(r['from']) + ') OR '
@@ -279,7 +279,7 @@ class ConnectionsTableModel(QStandardItemModel):
             filterStr = self.getFilterStr()
             matchStr = self.getMatch(filterStr) if filterStr else None
             if matchStr:
-                qStr += matchStr + " AND "
+                qStr += f"{matchStr} AND "
             qStr = qStr[:-4] #remove trailing ' AND'
             qStr += ' ORDER '+ self.origQueryStr.split('ORDER')[1]
 
@@ -305,7 +305,7 @@ class ConnectionsTableModel(QStandardItemModel):
             self.dataChanged.emit(self.createIndex(0,0), self.createIndex(upperBound, len(self.headerLabels)))
 
     #form a condition string for the query: if filterStr is (partially) present in any of the columns
-    def getMatch (self, filterStr):
+    def getMatch(self, filterStr):
         match = {}
         for column in self.distinct.keys():
             match[column] = []
@@ -313,7 +313,7 @@ class ConnectionsTableModel(QStandardItemModel):
                 if filterStr in value:
                     match[column].append(value)
         matchStr = None
-        if any([match[col] for col in match]):
+        if any(match[col] for col in match):
             matchStr = '( '
             if match['time']:
                 matchStr += "time IN ('" + "','".join(match['time']) + "') OR"
@@ -337,17 +337,18 @@ class ConnectionsTableModel(QStandardItemModel):
 
     #extract the filter string if any
     def getFilterStr(self):
-        filterStr = None
-        if "LIKE '%" in self.origQueryStr:
-            filterStr = self.origQueryStr.split("LIKE '%")[1].split("%")[0]
-        return filterStr
+        return (
+            self.origQueryStr.split("LIKE '%")[1].split("%")[0]
+            if "LIKE '%" in self.origQueryStr
+            else None
+        )
 
     #extract the action string if any
     def getActionStr(self):
         actionStr = None
         if 'WHERE Action = "' in self.origQueryStr:
             actionCond = self.origQueryStr.split('WHERE Action = "')[1].split('"')[0]
-            actionStr = "action = '"+actionCond+"'"
+            actionStr = f"action = '{actionCond}'"
         return actionStr
 
     def dumpRows(self):
@@ -359,9 +360,7 @@ class ConnectionsTableModel(QStandardItemModel):
             q.next()
             if q.at() == QSql.AfterLastRow:
                 break
-            row = []
-            for col in range(0, len(self.headerLabels)):
-                row.append(q.value(col))
+            row = [q.value(col) for col in range(0, len(self.headerLabels))]
             rows.append(row)
         return rows
 
@@ -429,7 +428,7 @@ class ConnectionsTableView(QTableView):
     def onRowCountChanged(self):
         totalCount = self.model().totalRowCount
         scrollBar = self.vScrollBar
-        scrollBar.setVisible(True if totalCount > self.maxRowsInViewport else False)
+        scrollBar.setVisible(totalCount > self.maxRowsInViewport)
         scrollBarValue = scrollBar.value()
         if self.model().limit:
             newValue = min(scrollBarValue, self.model().limit - self.maxRowsInViewport)

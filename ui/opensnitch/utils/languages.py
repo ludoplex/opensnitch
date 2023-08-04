@@ -4,7 +4,7 @@ import os
 from opensnitch.config import Config
 
 def __get_i18n_path():
-    return os.path.dirname(os.path.realpath(__file__)) + "/../i18n"
+    return f"{os.path.dirname(os.path.realpath(__file__))}/../i18n"
 
 def init(saved_lang):
     locale = QtCore.QLocale.system()
@@ -14,7 +14,7 @@ def init(saved_lang):
     i18n_path = __get_i18n_path()
     print("Loading translations:", i18n_path, "locale:", lang)
     translator = QtCore.QTranslator()
-    translator.load(i18n_path + "/" + lang + "/opensnitch-" + lang + ".qm")
+    translator.load(f"{i18n_path}/{lang}/opensnitch-{lang}.qm")
 
     return translator
 

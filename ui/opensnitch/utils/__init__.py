@@ -19,7 +19,7 @@ class AsnDB():
 
     @staticmethod
     def instance():
-        if AsnDB.__instance == None:
+        if AsnDB.__instance is None:
             AsnDB.__instance = AsnDB()
         return AsnDB.__instance
 
@@ -80,7 +80,7 @@ class AsnDB():
         """
         try:
             asname = self.asndb.get_as_name(asn)
-            if asname == None:
+            if asname is None:
                 asname = ""
             return asname
         except Exception:
@@ -113,7 +113,7 @@ class Themes():
 
     @staticmethod
     def instance():
-        if Themes.__instance == None:
+        if Themes.__instance is None:
             Themes.__instance = Themes()
         return Themes.__instance
 
@@ -129,7 +129,7 @@ class Themes():
             return 0, ""
 
         theme = self._cfg.getSettings(self._cfg.DEFAULT_THEME)
-        if theme != "" and theme != None:
+        if theme not in ["", None]:
             # 0 == System
             return self.list_themes().index(theme)+1, theme
         return 0, ""
@@ -172,7 +172,7 @@ class Themes():
 
         try:
             for tdir in self.THEMES_PATH:
-                themes += glob.glob(tdir + "/themes/*.xml")
+                themes += glob.glob(f"{tdir}/themes/*.xml")
         except Exception:
             pass
         finally:
@@ -265,7 +265,7 @@ class Utils():
     def get_user_id(uid):
         pw_name = uid
         try:
-            pw_name = pwd.getpwuid(int(uid)).pw_name + " (" + uid + ")"
+            pw_name = f"{pwd.getpwuid(int(uid)).pw_name} ({uid})"
         except Exception:
             #pw_name += " (error)"
             pass
@@ -294,9 +294,9 @@ class Utils():
 
         try:
             if os.path.exists(run_path):
-                os.makedirs(run_path + "/opensnitch/", 0o700)
+                os.makedirs(f"{run_path}/opensnitch/", 0o700)
             if os.path.exists(var_run_path):
-                os.makedirs(var_run_path + "/opensnitch/", 0o700)
+                os.makedirs(f"{var_run_path}/opensnitch/", 0o700)
         except:
             pass
 
@@ -341,8 +341,9 @@ class FileDialog():
     @staticmethod
     def select_dir(parent, current_dir):
         options = QtWidgets.QFileDialog.Options()
-        fileName = QtWidgets.QFileDialog.getExistingDirectory(parent, "", current_dir, options)
-        return fileName
+        return QtWidgets.QFileDialog.getExistingDirectory(
+            parent, "", current_dir, options
+        )
 
 # https://stackoverflow.com/questions/29503339/how-to-get-all-values-from-python-enum-class
 class Enums(enum.Enum):
@@ -383,7 +384,7 @@ class NetworkServices():
 
     @staticmethod
     def instance():
-        if NetworkServices.__instance == None:
+        if NetworkServices.__instance is None:
             NetworkServices.__instance = NetworkServices()
         return NetworkServices.__instance
 
@@ -400,15 +401,19 @@ class NetworkServices():
             for line in etcServices:
                 if line[0] == "#":
                     continue
-                g = re.search("([a-zA-Z0-9\-]+)( |\t)+([0-9]+)\/([a-zA-Z0-9\-]+)(.*)\n", line)
-                if g:
-                    self.srv_array.append("{0}/{1} {2}".format(
-                        g.group(1),
-                        g.group(3),
-                        "" if len(g.groups())>3 and g.group(4) == "" else "({0})".format(g.group(4).replace("\t", ""))
+                if g := re.search(
+                    "([a-zA-Z0-9\-]+)( |\t)+([0-9]+)\/([a-zA-Z0-9\-]+)(.*)\n", line
+                ):
+                    self.srv_array.append(
+                        "{0}/{1} {2}".format(
+                            g[1],
+                            g[3],
+                            ""
+                            if len(g.groups()) > 3 and g[4] == ""
+                            else "({0})".format(g[4].replace("\t", "")),
+                        )
                     )
-                    )
-                    self.ports_list.append(g.group(3))
+                    self.ports_list.append(g[3])
 
             # extra ports that don't exist in /etc/services
             self.srv_array.append("wireguard/51820 WireGuard VPN")
@@ -466,7 +471,9 @@ class Icons():
 
     @staticmethod
     def new(icon_name):
-        icon = QtGui.QIcon.fromTheme(icon_name, QtGui.QIcon.fromTheme(icon_name + "-symbolic"))
+        icon = QtGui.QIcon.fromTheme(
+            icon_name, QtGui.QIcon.fromTheme(f"{icon_name}-symbolic")
+        )
         if icon.isNull():
             try:
                 return self.style().standardIcon(getattr(QtWidgets.QStyle, NewIcon.defaults[icon_name]))

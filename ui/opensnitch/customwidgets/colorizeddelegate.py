@@ -24,12 +24,12 @@ class ColorizedDelegate(QItemDelegate):
     def paint(self, painter, option, index):
         """Override default widget style to personalize it with our own.
         """
-        if self._actions.get('actions') == None:
+        if self._actions.get('actions') is None:
             return super().paint(painter, option, index)
         if not index.isValid():
             return super().paint(painter, option, index)
         cellValue = index.data(QtCore.Qt.DisplayRole)
-        if cellValue == None:
+        if cellValue is None:
             return super().paint(painter, option, index)
 
         # initialize new QStyleOptionViewItem with the default options of this

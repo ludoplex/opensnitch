@@ -14,7 +14,7 @@ import opensnitch.firewall as Fw
 from opensnitch.firewall.utils import Utils as FwUtils
 
 
-DIALOG_UI_PATH = "%s/../res/firewall_rule.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/firewall_rule.ui"
 class FwRuleDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
     LOG_TAG = "[fw rule dialog]"
     ACTION_IDX_DENY = 0
@@ -408,7 +408,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
 
     @QtCore.pyqtSlot(int)
     def _cb_nodes_updated(self, total):
-        self.tabWidget.setDisabled(True if total == 0 else False)
+        self.tabWidget.setDisabled(total == 0)
 
     def closeEvent(self, e):
         self._close()
@@ -540,7 +540,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         w = self.statements[st_idx]
         idx = w['what'].currentIndex()-1 # first item is blank
         val = w['value'].currentText().lower()
-        if idx != -1 and (idx == self.STATM_SPORT or idx == self.STATM_DPORT):
+        if idx != -1 and idx in [self.STATM_SPORT, self.STATM_DPORT]:
             # automagically choose the protocol for the selected port:
             # echo/7 (tcp) -> tcp
             if Fw.PortProtocols.TCP.value in val:
@@ -579,10 +579,11 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         self._configure_verdict_parms(idx)
 
     def _is_valid_rule(self):
-        if (self.comboVerdict.currentText().lower() == Config.ACTION_REDIRECT or \
-            self.comboVerdict.currentText().lower() == Config.ACTION_TPROXY or \
-            self.comboVerdict.currentText().lower() == Config.ACTION_DNAT) and \
-             (self.comboDirection.currentIndex() == self.IN or self.comboDirection.currentIndex() == self.POSTROUTING):
+        if self.comboVerdict.currentText().lower() in [
+            Config.ACTION_REDIRECT,
+            Config.ACTION_TPROXY,
+            Config.ACTION_DNAT,
+        ] and self.comboDirection.currentIndex() in [self.IN, self.POSTROUTING]:
             self._set_status_message(
                 QC.translate(
                     "firewall",
@@ -591,7 +592,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
             )
             return False
         elif self.comboVerdict.currentText().lower() == Config.ACTION_SNAT and \
-             self.comboDirection.currentIndex() != self.POSTROUTING:
+                 self.comboDirection.currentIndex() != self.POSTROUTING:
             self._set_status_message(
                 QC.translate(
                     "firewall",
@@ -608,12 +609,14 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         # TODO:
         # Fw.Verdicts.values()[idx+1] == Config.ACTION_REJECT or \
         # Fw.Verdicts.values()[idx+1] == Config.ACTION_JUMP or \
-        return Fw.Verdicts.values()[idx+1] == Config.ACTION_QUEUE or \
-            Fw.Verdicts.values()[idx+1] == Config.ACTION_REDIRECT or \
-            Fw.Verdicts.values()[idx+1] == Config.ACTION_TPROXY or \
-            Fw.Verdicts.values()[idx+1] == Config.ACTION_DNAT or \
-            Fw.Verdicts.values()[idx+1] == Config.ACTION_SNAT or \
-            Fw.Verdicts.values()[idx+1] == Config.ACTION_MASQUERADE
+        return Fw.Verdicts.values()[idx + 1] in [
+            Config.ACTION_QUEUE,
+            Config.ACTION_REDIRECT,
+            Config.ACTION_TPROXY,
+            Config.ACTION_DNAT,
+            Config.ACTION_SNAT,
+            Config.ACTION_MASQUERADE,
+        ]
 
     def _configure_verdict_parms(self, idx):
         self.comboVerdictParms.clear()
@@ -625,10 +628,12 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         elif verdict == Config.ACTION_JUMP:
             self.comboVerdictParms.setVisible(False)
 
-        elif verdict == Config.ACTION_REDIRECT or \
-            verdict == Config.ACTION_TPROXY or \
-            verdict == Config.ACTION_SNAT or \
-            verdict == Config.ACTION_DNAT:
+        elif verdict in [
+            Config.ACTION_REDIRECT,
+            Config.ACTION_TPROXY,
+            Config.ACTION_SNAT,
+            Config.ACTION_DNAT,
+        ]:
             self.comboVerdictParms.addItem(QC.translate("firewall", "to"), "to")
 
         elif verdict == Config.ACTION_MASQUERADE:
@@ -637,18 +642,21 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
             self.comboVerdictParms.addItem(QC.translate("firewall", "to"), "to")
 
         # https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)#Redirect
-        if (verdict == Config.ACTION_REDIRECT or verdict == Config.ACTION_DNAT) and \
-                (self.comboDirection.currentIndex() != self.OUT and self.comboDirection.currentIndex() != self.PREROUTING):
+        if verdict in [
+            Config.ACTION_REDIRECT,
+            Config.ACTION_DNAT,
+        ] and self.comboDirection.currentIndex() not in [
+            self.OUT,
+            self.PREROUTING,
+        ]:
             self.comboDirection.setCurrentIndex(self.OUT)
 
         elif self.comboVerdict.currentText().lower() == Config.ACTION_SNAT and \
-             self.comboDirection.currentIndex() != self.POSTROUTING:
+                 self.comboDirection.currentIndex() != self.POSTROUTING:
             self.comboDirection.setCurrentIndex(self.POSTROUTING)
 
     def _reorder_toolbox_pages(self):
-        tmp = {}
-        for i,k in enumerate(self.statements):
-            tmp[i] = self.statements[k]
+        tmp = {i: self.statements[k] for i, k in enumerate(self.statements)}
         self.statements = tmp
 
     def _reset_widgets(self, title, topWidget):
@@ -681,9 +689,9 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
 
         st = self.STATM_CONF[idx]['name']
         st_opts = w['opts'].currentText()
-        if idx == self.STATM_DEST_IP or idx == self.STATM_SOURCE_IP:
+        if idx in [self.STATM_DEST_IP, self.STATM_SOURCE_IP]:
             st = st_opts
-        if idx == self.STATM_DPORT or idx == self.STATM_SPORT:
+        if idx in [self.STATM_DPORT, self.STATM_SPORT]:
             st = st_opts
 
         title = st
@@ -697,9 +705,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         # override previous setup for some statements
         if idx == self.STATM_META:
             title = "{0} {1} {2} {3}".format(st, st_opts, st_op, st_val)
-        elif idx == self.STATM_QUOTA:
-            title = "{0} {1} {2}".format(st, st_opts, st_val)
-        elif idx == self.STATM_LIMIT:
+        elif idx in [self.STATM_QUOTA, self.STATM_LIMIT]:
             title = "{0} {1} {2}".format(st, st_opts, st_val)
         else:
             title = "{0} {1} {2}".format(title, st_op, st_val)
@@ -718,26 +724,24 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         oldValue = w['value'].currentText()
         w['value'].clear()
         for k in self.STATM_CONF[idx]['keys']:
-            if k['values'] == None:
+            if k['values'] is None:
                 continue
             w['value'].addItems(k['values'])
         w['value'].setCurrentText(oldValue)
 
         w['opts'].clear()
-        if idx == self.STATM_DPORT or \
-            idx == self.STATM_SPORT:
+        if idx in [self.STATM_DPORT, self.STATM_SPORT]:
             w['op'].setVisible(True)
             w['opts'].setVisible(True)
             w['opts'].addItems(Fw.PortProtocols.values())
 
-        elif idx == self.STATM_DEST_IP or \
-            idx == self.STATM_SOURCE_IP:
+        elif idx in [self.STATM_DEST_IP, self.STATM_SOURCE_IP]:
             w['op'].setVisible(True)
             w['opts'].setVisible(True)
             w['opts'].addItems(Fw.Family.values())
             w['opts'].removeItem(0) # remove 'inet' item
 
-        elif idx == self.STATM_IIFNAME or idx == self.STATM_OIFNAME:
+        elif idx in [self.STATM_IIFNAME, self.STATM_OIFNAME]:
             w['op'].setVisible(True)
             w['opts'].setVisible(False)
             if self._nodes.is_local(self.comboNodes.currentText()):
@@ -750,8 +754,12 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
             # exclude first item of the list
             w['opts'].addItems(Fw.ExprMeta.values()[1:])
 
-        elif idx == self.STATM_ICMP or idx == self.STATM_ICMPv6 or \
-            idx == self.STATM_CT_STATE or idx == self.STATM_CT_MARK:
+        elif idx in [
+            self.STATM_ICMP,
+            self.STATM_ICMPv6,
+            self.STATM_CT_STATE,
+            self.STATM_CT_MARK,
+        ]:
             w['op'].setVisible(True)
             w['opts'].setVisible(False)
 
@@ -763,7 +771,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
                 # nftables default log level is warn
                 Fw.ExprLogLevels.values().index(Fw.ExprLogLevels.WARN.value)
             )
-        elif idx == self.STATM_QUOTA or idx == self.STATM_LIMIT:
+        elif idx in [self.STATM_QUOTA, self.STATM_LIMIT]:
             w['op'].setVisible(False)
             w['opts'].setVisible(True)
             w['opts'].addItems([Fw.ExprQuota.OVER.value, Fw.ExprQuota.UNTIL.value])
@@ -934,9 +942,9 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
                 elif v.Key == Fw.ExprLimit.UNITS.value:
                     lval = v.Value
                 elif v.Key == Fw.ExprLimit.RATE_UNITS.value:
-                    lval = "%s/%s" % (lval, v.Value)
+                    lval = f"{lval}/{v.Value}"
                 elif v.Key == Fw.ExprLimit.TIME_UNITS.value:
-                    lval = "%s/%s" % (lval, v.Value)
+                    lval = f"{lval}/{v.Value}"
 
             self.statements[idx]['value'].setCurrentText(lval)
         except Exception as e:
@@ -965,12 +973,14 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
 
             elif exp.Statement.Values[0].Key == Fw.ExprCt.SET.value:
                 self.statements[idx]['what'].setCurrentIndex(self.STATM_CT_SET+1)
-                markVal = ""
-                for v in exp.Statement.Values:
-                    if v.Key == Fw.ExprCt.MARK.value:
-                        markVal = v.Value
-                        break
-
+                markVal = next(
+                    (
+                        v.Value
+                        for v in exp.Statement.Values
+                        if v.Key == Fw.ExprCt.MARK.value
+                    ),
+                    "",
+                )
                 self.statements[idx]['value'].setCurrentText(markVal)
                 if markVal == "":
                     raise ValueError(
@@ -1005,13 +1015,20 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
         self.uuid = uuid
 
         node, rule = self._fw.get_rule_by_uuid(uuid)
-        if rule == None or \
-                (rule.Hook.lower() != Fw.Hooks.INPUT.value and \
-                 rule.Hook.lower() != Fw.Hooks.FORWARD.value and \
-                 rule.Hook.lower() != Fw.Hooks.PREROUTING.value and \
-                 rule.Hook.lower() != Fw.Hooks.POSTROUTING.value and \
-                 rule.Hook.lower() != Fw.Hooks.OUTPUT.value):
-            hook = "invalid" if rule == None else rule.Hook
+        if rule is None:
+            hook = "invalid" if rule is None else rule.Hook
+            self._set_status_error(QC.translate("firewall", "Rule hook ({0}) not supported yet".format(hook)))
+            self._disable_controls()
+            return
+
+        elif rule.Hook.lower() not in [
+            Fw.Hooks.INPUT.value,
+            Fw.Hooks.FORWARD.value,
+            Fw.Hooks.PREROUTING.value,
+            Fw.Hooks.POSTROUTING.value,
+            Fw.Hooks.OUTPUT.value,
+        ]:
+            hook = "invalid" if rule is None else rule.Hook
             self._set_status_error(QC.translate("firewall", "Rule hook ({0}) not supported yet".format(hook)))
             self._disable_controls()
             return
@@ -1028,7 +1045,7 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
             self.tabWidget.setTabText(0, QC.translate("firewall", "Simple"))
             self.add_new_statement("", self.toolBoxSimple)
         else:
-            for i in enumerate(rule.Rules[0].Expressions):
+            for _ in enumerate(rule.Rules[0].Expressions):
                 self.add_new_statement("", self.toolBoxSimple)
             self.tabWidget.setTabText(0, QC.translate("firewall", "Advanced"))
 
@@ -1061,7 +1078,10 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
                     Fw.PortProtocols.values().index(st_name.lower())
                 )
 
-            elif exp.Statement.Name == Fw.Statements.IP.value or exp.Statement.Name == Fw.Statements.IP6.value:
+            elif exp.Statement.Name in [
+                Fw.Statements.IP.value,
+                Fw.Statements.IP6.value,
+            ]:
                 if exp.Statement.Values[0].Key == Fw.Statements.DADDR.value:
                     self.statements[idx]['what'].setCurrentIndex(self.STATM_DEST_IP+1)
                 elif exp.Statement.Values[0].Key == Fw.Statements.SADDR.value:
@@ -1088,7 +1108,10 @@ The value must be in the format: VALUE/UNITS/TIME, for example:
             elif exp.Statement.Name == Fw.Statements.META.value:
                 self._load_meta_statement(exp, idx)
 
-            elif exp.Statement.Name == Fw.Statements.ICMP.value or exp.Statement.Name == Fw.Statements.ICMPv6.value:
+            elif exp.Statement.Name in [
+                Fw.Statements.ICMP.value,
+                Fw.Statements.ICMPv6.value,
+            ]:
                 if exp.Statement.Name == Fw.Statements.ICMP.value:
                     self.statements[idx]['what'].setCurrentIndex(self.STATM_ICMP+1)
                 else:

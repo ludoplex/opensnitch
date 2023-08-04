@@ -8,10 +8,10 @@ import re
 import shutil
 import locale
 
-DESKTOP_PATHS = tuple([
+DESKTOP_PATHS = tuple(
     os.path.join(d, 'applications')
     for d in os.getenv('XDG_DATA_DIRS', '/usr/share/').split(':')
-])
+)
 
 class LinuxDesktopParser(threading.Thread):
     def __init__(self):
@@ -49,9 +49,10 @@ class LinuxDesktopParser(threading.Thread):
 
     def _parse_exec(self, cmd):
         try:
-            is_flatpak = re.search("^/usr/[s]*bin/flatpak.*--command=([a-zA-Z0-9-_\/\.\+]+)", cmd)
-            if is_flatpak:
-                return is_flatpak.group(1)
+            if is_flatpak := re.search(
+                "^/usr/[s]*bin/flatpak.*--command=([a-zA-Z0-9-_\/\.\+]+)", cmd
+            ):
+                return is_flatpak[1]
 
             # remove stuff like %U
             cmd = re.sub( r'%[a-zA-Z]+', '', cmd)
@@ -77,11 +78,21 @@ class LinuxDesktopParser(threading.Thread):
 
     def get_app_description(self, parser):
         try:
-            desc = parser.get('Desktop Entry', 'Comment[%s]' % self.locale_country, raw=True, fallback=None)
-            if desc == None:
-                desc = parser.get('Desktop Entry', 'Comment[%s]' % self.locale, raw=True, fallback=None)
+            desc = parser.get(
+                'Desktop Entry',
+                f'Comment[{self.locale_country}]',
+                raw=True,
+                fallback=None,
+            )
+            if desc is None:
+                desc = parser.get(
+                    'Desktop Entry',
+                    f'Comment[{self.locale}]',
+                    raw=True,
+                    fallback=None,
+                )
 
-            if desc == None:
+            if desc is None:
                 desc = parser.get('Desktop Entry', 'Comment', raw=True, fallback=None)
 
             return desc
@@ -97,14 +108,9 @@ class LinuxDesktopParser(threading.Thread):
         icon_exts = (".png", ".xpm", ".svg")
         for idir in icon_dirs:
             for iext in icon_exts:
-                if iext in app_name:
-                    iconPath = idir + app_name
-                    if os.path.exists(iconPath):
-                        return iconPath
-                else:
-                    iconPath = idir + app_name + iext
-                    if os.path.exists(iconPath):
-                        return iconPath
+                iconPath = idir + app_name if iext in app_name else idir + app_name + iext
+                if os.path.exists(iconPath):
+                    return iconPath
 
     def _parse_desktop_file(self, desktop_path):
         parser = configparser.ConfigParser(strict=False)  # Allow duplicate config entries
@@ -113,7 +119,7 @@ class LinuxDesktopParser(threading.Thread):
             parser.read(desktop_path, 'utf8')
 
             cmd = parser.get('Desktop Entry', 'exec', raw=True, fallback=None)
-            if cmd == None:
+            if cmd is None:
                 cmd = parser.get('Desktop Entry', 'Exec', raw=True, fallback=None)
             if cmd is not None:
                 cmd  = self._parse_exec(cmd)
@@ -121,7 +127,7 @@ class LinuxDesktopParser(threading.Thread):
                 name = parser.get('Desktop Entry', 'Name', raw=True, fallback=None)
                 desc = self.get_app_description(parser)
 
-                if icon == None:
+                if icon is None:
                     # Some .desktop files doesn't have the Icon entry
                     # FIXME: even if we return an icon, if the DE is not properly configured,
                     # it won't be loaded/displayed.
@@ -148,7 +154,7 @@ class LinuxDesktopParser(threading.Thread):
                 break
 
         app_name = self.apps.get(path)
-        if app_name == None:
+        if app_name is None:
             # last try to get a default terminal icon
             for def_icon in ("utilities-terminal", "gnome-terminal", "xfce-terminal"):
                 test = self.apps.get(def_name, (def_name, def_icon, "", None))

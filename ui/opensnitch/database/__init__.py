@@ -16,7 +16,7 @@ class Database:
 
     @staticmethod
     def instance():
-        if Database.__instance == None:
+        if Database.__instance is None:
             Database.__instance = Database()
         return Database.__instance
 
@@ -95,28 +95,26 @@ class Database:
             q = QSqlQuery("PRAGMA synchronous = OFF", self.db)
             q.exec_()
             q = QSqlQuery("PRAGMA cache_size=10000", self.db)
-            q.exec_()
         else:
             q = QSqlQuery("PRAGMA synchronous = NORMAL", self.db)
-            q.exec_()
-
+        q.exec_()
         q = QSqlQuery("create table if not exists connections (" \
-                "time text, " \
-                "node text, " \
-                "action text, " \
-                "protocol text, " \
-                "src_ip text, " \
-                "src_port text, " \
-                "dst_ip text, " \
-                "dst_host text, " \
-                "dst_port text, " \
-                "uid text, " \
-                "pid text, " \
-                "process text, " \
-                "process_args text, " \
-                "process_cwd text, " \
-                "rule text, " \
-                "UNIQUE(node, action, protocol, src_ip, src_port, dst_ip, dst_port, uid, pid, process, process_args))",
+                    "time text, " \
+                    "node text, " \
+                    "action text, " \
+                    "protocol text, " \
+                    "src_ip text, " \
+                    "src_port text, " \
+                    "dst_ip text, " \
+                    "dst_host text, " \
+                    "dst_port text, " \
+                    "uid text, " \
+                    "pid text, " \
+                    "process text, " \
+                    "process_args text, " \
+                    "process_cwd text, " \
+                    "rule text, " \
+                    "UNIQUE(node, action, protocol, src_ip, src_port, dst_ip, dst_port, uid, pid, process, process_args))",
                 self.db)
         q = QSqlQuery("create index time_index on connections (time)", self.db)
         q.exec_()
@@ -139,20 +137,20 @@ class Database:
         q = QSqlQuery("CREATE INDEX details_query_index on connections (process, process_args, uid, pid, dst_ip, dst_host, dst_port, action, node, protocol)", self.db)
         q.exec_()
         q = QSqlQuery("create table if not exists rules (" \
-                "time text, " \
-                "node text, " \
-                "name text, " \
-                "enabled text, " \
-                "precedence text, " \
-                "action text, " \
-                "duration text, " \
-                "operator_type text, " \
-                "operator_sensitive text, " \
-                "operator_operand text, " \
-                "operator_data text, " \
-                "description text, " \
-                "nolog text, " \
-                "UNIQUE(node, name)"
+                    "time text, " \
+                    "node text, " \
+                    "name text, " \
+                    "enabled text, " \
+                    "precedence text, " \
+                    "action text, " \
+                    "duration text, " \
+                    "operator_type text, " \
+                    "operator_sensitive text, " \
+                    "operator_operand text, " \
+                    "operator_data text, " \
+                    "description text, " \
+                    "nolog text, " \
+                    "UNIQUE(node, name)"
                 ")", self.db)
         q.exec_()
         q = QSqlQuery("create index rules_index on rules (time)", self.db)
@@ -170,16 +168,16 @@ class Database:
         q.exec_()
 
         q = QSqlQuery("create table if not exists nodes (" \
-                "addr text primary key," \
-                "hostname text," \
-                "daemon_version text," \
-                "daemon_uptime text," \
-                "daemon_rules text," \
-                "cons text," \
-                "cons_dropped text," \
-                "version text," \
-                "status text, " \
-                "last_connection text)"
+                    "addr text primary key," \
+                    "hostname text," \
+                    "daemon_version text," \
+                    "daemon_uptime text," \
+                    "daemon_rules text," \
+                    "cons text," \
+                    "cons_dropped text," \
+                    "version text," \
+                    "status text, " \
+                    "last_connection text)"
                 , self.db)
         q.exec_()
 
@@ -198,7 +196,7 @@ class Database:
         q.exec_()
 
     def _upgrade_db_schema(self):
-        migrations_path = os.path.dirname(os.path.realpath(__file__)) + "/migrations"
+        migrations_path = f"{os.path.dirname(os.path.realpath(__file__))}/migrations"
         schema_version = self.get_schema_version()
         if schema_version == self.DB_VERSION:
             print("db schema is up to date")
@@ -216,7 +214,7 @@ class Database:
         print("applying upgrade from:", file)
         q = QSqlQuery(self.db)
         with open(file) as f:
-            for line in f.readlines():
+            for line in f:
                 # skip comments
                 if line.startswith("--"):
                     continue
@@ -234,7 +232,7 @@ class Database:
 
     def clean(self, table):
         with self._lock:
-            q = QSqlQuery("delete from " + table, self.db)
+            q = QSqlQuery(f"delete from {table}", self.db)
             q.exec_()
 
     def vacuum(self):
@@ -287,7 +285,7 @@ class Database:
         try:
             oldt = self.get_oldest_record()
             newt = self.get_newest_record()
-            if oldt == None or newt == None or oldt == 0 or newt == 0:
+            if oldt is None or newt is None or oldt == 0 or newt == 0:
                 return -1
 
             oldest = datetime.fromisoformat(oldt)
@@ -320,9 +318,8 @@ class Database:
             q = QSqlQuery(qstr, self.db)
             if q.exec_():
                 return True
-            else:
-                print("db, remove() ERROR: ", qstr)
-                print(q.lastError().driverText())
+            print("db, remove() ERROR: ", qstr)
+            print(q.lastError().driverText())
         except Exception as e:
             print("db, remove exception: ", e)
 
@@ -338,9 +335,8 @@ class Database:
                     q.bindValue(idx, v)
                 if q.exec_():
                     return True
-                else:
-                    print("_insert() ERROR", query_str)
-                    print(q.lastError().driverText())
+                print("_insert() ERROR", query_str)
+                print(q.lastError().driverText())
 
             except Exception as e:
                 print("_insert exception", e)
@@ -350,33 +346,29 @@ class Database:
         return False
 
     def insert(self, table, fields, columns, update_field=None, update_values=None, action_on_conflict="REPLACE"):
-        if update_field != None:
-            action_on_conflict = ""
-        else:
-            action_on_conflict = "OR " + action_on_conflict
-
-        qstr = "INSERT " + action_on_conflict + " INTO " + table + " " + fields + " VALUES("
+        action_on_conflict = "" if update_field != None else f"OR {action_on_conflict}"
+        qstr = f"INSERT {action_on_conflict} INTO {table} {fields} VALUES("
         update_fields=""
-        for col in columns:
+        for _ in columns:
             qstr += "?,"
-        qstr = qstr[0:len(qstr)-1] + ")"
+        qstr = f"{qstr[:-1]})"
 
         if update_field != None:
             # NOTE: UPSERTS on sqlite are only supported from v3.24 on.
             # On Ubuntu16.04/18 for example (v3.11/3.22) updating a record on conflict
             # fails with "Parameter count error"
-            qstr += " ON CONFLICT (" + update_field + ") DO UPDATE SET "
-            for idx, field in enumerate(update_values):
-                qstr += str(field) + "=excluded." + str(field) + ","
+            qstr += f" ON CONFLICT ({update_field}) DO UPDATE SET "
+            for field in update_values:
+                qstr += f"{str(field)}=excluded.{str(field)},"
 
-            qstr = qstr[0:len(qstr)-1]
+            qstr = qstr[:-1]
 
         return self._insert(qstr, columns)
 
     def update(self, table, fields, values, condition=None, action_on_conflict="OR IGNORE"):
-        qstr = "UPDATE " + action_on_conflict + " " + table + " SET " + fields
+        qstr = f"UPDATE {action_on_conflict} {table} SET {fields}"
         if condition != None:
-            qstr += " WHERE " + condition
+            qstr += f" WHERE {condition}"
         try:
             with self._lock:
                 q = QSqlQuery(qstr, self.db)
@@ -413,23 +405,26 @@ class Database:
         return result
 
     def insert_batch(self, table, db_fields, db_columns, fields, values, update_field=None, update_value=None, action_on_conflict="REPLACE"):
-        action = "OR " + action_on_conflict
+        action = f"OR {action_on_conflict}"
         if update_field != None:
             action = ""
 
-        qstr = "INSERT " + action + " INTO " + table + " (" + db_fields[0] + "," + db_fields[1] + ") VALUES("
-        for idx in db_columns:
+        qstr = f"INSERT {action} INTO {table} ({db_fields[0]},{db_fields[1]}) VALUES("
+        for _ in db_columns:
             qstr += "?,"
-        qstr = qstr[0:len(qstr)-1] + ")"
+        qstr = f"{qstr[:-1]})"
 
         if self._insert_batch(qstr, fields, values) == False:
             self.update_batch(table, db_fields, db_columns, fields, values, update_field, update_value, action_on_conflict)
 
     def update_batch(self, table, db_fields, db_columns, fields, values, update_field=None, update_value=None, action_on_conflict="REPLACE"):
         for idx, i in enumerate(values):
-            s = "UPDATE " + table + " SET " + "%s=(select hits from %s)+%s" % (db_fields[1], table, values[idx])
+            s = (
+                f"UPDATE {table} SET "
+                + f"{db_fields[1]}=(select hits from {table})+{values[idx]}"
+            )
             s += "  WHERE %s=\"%s\"," % (db_fields[0], fields[idx])
-            s = s[0:len(s)-1]
+            s = s[:-1]
             with self._lock:
                 q = QSqlQuery(s, self.db)
                 if not q.exec_():
@@ -441,7 +436,7 @@ class Database:
         q.exec_()
 
     def get_query(self, table, fields):
-        return "SELECT " + fields + " FROM " + table
+        return f"SELECT {fields} FROM {table}"
 
     def empty_rule(self, name=""):
         if name == "":
@@ -459,7 +454,7 @@ class Database:
     def delete_rule(self, name, node_addr):
         qstr = "DELETE FROM rules WHERE name=?"
         if node_addr != None:
-            qstr = qstr + " AND node=?"
+            qstr += " AND node=?"
 
         with self._lock:
             q = QSqlQuery(qstr, self.db)
@@ -479,8 +474,8 @@ class Database:
             return True
 
         qstr = "DELETE FROM rules WHERE "
-        for v in values:
-            qstr += field + "=? OR "
+        for _ in values:
+            qstr += f"{field}=? OR "
 
         qstr = qstr[:-4]
 
@@ -516,7 +511,7 @@ class Database:
         """
         qstr = "SELECT * FROM rules WHERE name=?"
         if node_addr != None:
-            qstr = qstr + " AND node=?"
+            qstr += " AND node=?"
 
         q = QSqlQuery(qstr, self.db)
         q.prepare(qstr)
@@ -535,10 +530,7 @@ class Database:
         q = QSqlQuery(qstr, self.db)
         q.prepare(qstr)
         q.addBindValue(node_addr)
-        if not q.exec_():
-            return None
-
-        return q
+        return None if not q.exec_() else q
 
     def insert_rule(self, rule, node_addr):
         self.insert("rules",

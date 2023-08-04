@@ -27,7 +27,9 @@ from opensnitch.utils.xdg import xdg_current_desktop
 from opensnitch.actions import Actions
 from opensnitch.rules import Rule, Rules
 
-DIALOG_UI_PATH = "%s/../res/stats.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = (
+    f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/stats.ui"
+)
 class StatsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     _trigger = QtCore.pyqtSignal(bool, bool)

@@ -12,18 +12,18 @@ from opensnitch.dialogs.preferences import PreferencesDialog
 class TestPreferences():
 
     @classmethod
-    def reset_settings(self):
+    def reset_settings(cls):
         try:
             os.remove(os.environ['HOME'] + "/.config/opensnitch/settings.conf")
         except Exception:
             pass
 
     @classmethod
-    def setup_method(self):
+    def setup_method(cls):
         white_icon = QtGui.QIcon("../res/icon-white.svg")
-        self.reset_settings()
-        self.prefs = PreferencesDialog(appicon=white_icon)
-        self.prefs.show()
+        cls.reset_settings()
+        cls.prefs = PreferencesDialog(appicon=white_icon)
+        cls.prefs.show()
 
     def run(self, qtbot):
         def handle_dialog():

@@ -164,8 +164,8 @@ class FirewallTableModel(QStandardItemModel):
         self.position -= 1
 
     def fillVisibleRows(self, upperBound, force, *data):
-        if self.activeFilter == self.FILTER_BY_NODE and len(data) == 0:
-                return
+        if self.activeFilter == self.FILTER_BY_NODE and not data:
+            return
 
         cols = []
         rules = []
@@ -208,8 +208,7 @@ class FirewallTableModel(QStandardItemModel):
     def addRows(self, rules):
         self.items = []
         for rows in rules:
-            cols = []
-            cols.append(QStandardItem("")) # buttons column
+            cols = [QStandardItem("")]
             for cl in rows:
                 item = QStandardItem(cl)
                 item.setData(cl, QtCore.Qt.UserRole+1)

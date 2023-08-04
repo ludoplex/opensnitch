@@ -116,11 +116,10 @@ Examples:
 
         if localsocket.waitForConnected():
             raise Exception("GUI already running, opening its window and exiting.")
-        else:
-            localserver = QLocalServer()
-            localserver.setSocketOptions(QLocalServer.UserAccessOption)
-            localserver.removeServer(app_id)
-            localserver.listen(app_id)
+        localserver = QLocalServer()
+        localserver.setSocketOptions(QLocalServer.UserAccessOption)
+        localserver.removeServer(app_id)
+        localserver.listen(app_id)
 
         if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
             app.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
@@ -128,12 +127,12 @@ Examples:
         thm.load_theme(app)
 
         cfg = Config.get()
-        if args.socket == None:
+        if args.socket is None:
             # default
             args.socket = "unix:///tmp/osui.sock"
 
             addr = cfg.getSettings(Config.DEFAULT_SERVER_ADDR)
-            if addr != None and addr != "":
+            if addr not in [None, ""]:
                 if addr.startswith("unix://"):
                     if not os.path.exists(os.path.dirname(addr[7:])):
                         print("WARNING: unix socket path does not exist, using unix:///tmp/osui.sock, ", addr)
@@ -168,8 +167,8 @@ Examples:
         if args.socket.startswith("unix://"):
             socket = args.socket[7:]
             socket = os.path.abspath(socket)
-            server.add_insecure_port("unix:%s" % socket)
-            #server.add_secure_port("unix:%s" % socket, tls_creds)
+            server.add_insecure_port(f"unix:{socket}")
+                    #server.add_secure_port("unix:%s" % socket, tls_creds)
         else:
             auth_type = auth.Simple
             if args.socket_auth != None:
@@ -178,21 +177,21 @@ Examples:
                 auth_type = cfg.getSettings(Config.AUTH_TYPE)
 
 
-            if auth_type == auth.Simple or auth_type == "":
+            if auth_type in [auth.Simple, ""]:
                 server.add_insecure_port(args.socket)
             else:
                 auth_ca_cert = args.tls_ca_cert
                 auth_cert = args.tls_cert
                 auth_certkey = args.tls_key
-                if auth_cert == None:
+                if auth_cert is None:
                     auth_cert = cfg.getSettings(Config.AUTH_CERT)
-                if auth_certkey == None:
+                if auth_certkey is None:
                     auth_certkey = cfg.getSettings(Config.AUTH_CERTKEY)
-                if auth_ca_cert == None:
+                if auth_ca_cert is None:
                     auth_ca_cert = cfg.getSettings(Config.AUTH_CA_CERT)
 
                 tls_creds = auth.get_tls_credentials(auth_ca_cert, auth_cert, auth_certkey)
-                if tls_creds == None:
+                if tls_creds is None:
                     raise Exception("Invalid TLS credentials. Review the server key and cert files.")
                 server.add_secure_port(args.socket, tls_creds)
 

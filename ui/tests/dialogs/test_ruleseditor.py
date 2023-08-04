@@ -11,14 +11,14 @@ from opensnitch.dialogs.ruleseditor import RulesEditorDialog
 class TestRulesEditor():
 
     @classmethod
-    def setup_method(self):
+    def setup_method(cls):
         white_icon = QtGui.QIcon("../res/icon-white.svg")
-        self.rd = RulesEditorDialog(appicon=white_icon)
-        self.rd.show()
-        self.rd.ruleNameEdit.setText("xxx")
-        self.rd.nodesCombo.addItem("unix:/tmp/osui.sock")
-        self.rd.nodesCombo.setCurrentText("unix:/tmp/osui.sock")
-        self.rd._nodes._nodes["unix:/tmp/osui.sock"] = {}
+        cls.rd = RulesEditorDialog(appicon=white_icon)
+        cls.rd.show()
+        cls.rd.ruleNameEdit.setText("xxx")
+        cls.rd.nodesCombo.addItem("unix:/tmp/osui.sock")
+        cls.rd.nodesCombo.setCurrentText("unix:/tmp/osui.sock")
+        cls.rd._nodes._nodes["unix:/tmp/osui.sock"] = {}
 
     def test_rule_no_fields(self, qtbot):
         """ Test that rules without fields selected cannot be created.

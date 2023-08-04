@@ -225,8 +225,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         print("\tIf you want to start OpenSnitch GUI in background even if tray not available, use --background argument.")
         print("")
 
-        hide_msg = self._cfg.getBool(Config.DEFAULT_HIDE_SYSTRAY_WARN)
-        if hide_msg:
+        if hide_msg := self._cfg.getBool(Config.DEFAULT_HIDE_SYSTRAY_WARN):
             return
         self._desktop_notifications.show(
             QC.translate("stats", "WARNING"),
@@ -238,7 +237,10 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         self._cfg.setSettings(Config.DEFAULT_HIDE_SYSTRAY_WARN, True)
 
     def _on_tray_icon_activated(self, reason):
-        if reason == QtWidgets.QSystemTrayIcon.Trigger or reason == QtWidgets.QSystemTrayIcon.MiddleClick:
+        if reason in [
+            QtWidgets.QSystemTrayIcon.Trigger,
+            QtWidgets.QSystemTrayIcon.MiddleClick,
+        ]:
             if self._stats_dialog.isVisible() and not self._stats_dialog.isMinimized():
                 self._stats_dialog.hide()
             elif self._stats_dialog.isVisible() and self._stats_dialog.isMinimized() and not self._stats_dialog.isMaximized():
@@ -504,7 +506,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         if proto == "unix":
             return True
 
-        elif proto == "ipv4" or proto == "ipv6":
+        elif proto in ["ipv4", "ipv6"]:
             for name, ip in self._interfaces.items():
                 if addr == ip:
                     return True
@@ -539,13 +541,13 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         main_need_refresh = False
         details_need_refresh = False
         try:
-            if db == None:
+            if db is None:
                 print("populate_stats() db None")
                 return main_need_refresh, details_need_refresh
 
-            peer = proto+":"+addr
+            peer = f"{proto}:{addr}"
             _node = self._nodes.get_node(peer)
-            if _node == None:
+            if _node is None:
                 return main_need_refresh, details_need_refresh
 
             # TODO: move to nodes.add_node()
@@ -553,7 +555,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
             hostname = _node['data'].name if _node != None else ""
             db.insert("nodes",
                     "(addr, status, hostname, daemon_version, daemon_uptime, " \
-                            "daemon_rules, cons, cons_dropped, version, last_connection)",
+                                "daemon_rules, cons, cons_dropped, version, last_connection)",
                             (peer, Nodes.ONLINE, hostname, stats.daemon_version, str(timedelta(seconds=stats.uptime)),
                             stats.rules, stats.connections, stats.dropped,
                             version, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
@@ -584,9 +586,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
             db.commit()
 
             details_need_refresh = self._populate_stats_details(db, addr, stats)
-            self._last_stats[addr] = []
-            for event in stats.events:
-                self._last_stats[addr].append(event.unixnano)
+            self._last_stats[addr] = [event.unixnano for event in stats.events]
         except Exception as e:
             print("_populate_stats() exception: ", e)
 
@@ -733,7 +733,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         rule, timeout_triggered = self._prompt_dialog.promptUser(request, self._is_local_request(proto, addr), context.peer())
         self._last_ping = datetime.now()
         self._asking = False
-        if rule == None:
+        if rule is None:
             return None
 
         if timeout_triggered:
@@ -803,9 +803,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
             print("[Notifications] exception adding new node:", e)
             context.cancel()
 
-        newconf = self._overwrite_nodes_config(node_config)
-
-        return newconf
+        return self._overwrite_nodes_config(node_config)
 
     def Notifications(self, node_iter, context):
         """
@@ -816,8 +814,8 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
         @doc: https://grpc.io/docs/what-is-grpc/core-concepts/
         """
         proto, addr = self._get_peer(context.peer())
-        _node = self._nodes.get_node("%s:%s" % (proto, addr))
-        if _node == None:
+        _node = self._nodes.get_node(f"{proto}:{addr}")
+        if _node is None:
             return
 
         stop_event = Event()
@@ -852,7 +850,7 @@ class UIService(ui_pb2_grpc.UIServicer, QtWidgets.QGraphicsObject):
                     if stop_event.is_set():
                         break
                     in_message = next(node_iter)
-                    if in_message == None:
+                    if in_message is None:
                         continue
 
                     self._nodes.reply_notification(addr, in_message)

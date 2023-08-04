@@ -24,7 +24,7 @@ def get_tls_credentials(ca_cert, server_cert, server_key):
         cacert = load_file(ca_cert)
         cert = load_file(server_cert)
         cert_key = load_file(server_key)
-        auth_nodes = False if cacert == None else True
+        auth_nodes = cacert is not None
 
         return grpc.ssl_server_credentials(
             ((cert_key, cert),),

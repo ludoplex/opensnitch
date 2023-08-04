@@ -73,7 +73,7 @@ class Actions(QObject):
 
     @staticmethod
     def instance():
-        if Actions.__instance == None:
+        if Actions.__instance is None:
             Actions.__instance = Actions()
         return Actions.__instance
 
@@ -116,7 +116,7 @@ class Actions(QObject):
         try:
             if Actions.KEY_NAME not in obj or obj[Actions.KEY_NAME] == "":
                 return None
-            if obj.get(Actions.KEY_ACTIONS) == None:
+            if obj.get(Actions.KEY_ACTIONS) is None:
                 return None
 
             for action in obj[Actions.KEY_ACTIONS]:

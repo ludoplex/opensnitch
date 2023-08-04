@@ -35,7 +35,11 @@ class Rule():
         rule.operator.type = records.value(RuleFields.OpType)
         rule.operator.sensitive = Rule.to_bool(records.value(RuleFields.OpSensitive))
         rule.operator.operand = records.value(RuleFields.OpOperand)
-        rule.operator.data = "" if records.value(RuleFields.OpData) == None else str(records.value(RuleFields.OpData))
+        rule.operator.data = (
+            ""
+            if records.value(RuleFields.OpData) is None
+            else str(records.value(RuleFields.OpData))
+        )
         rule.description = records.value(RuleFields.Description)
         rule.nolog = Rule.to_bool(records.value(RuleFields.NoLog))
 
@@ -49,7 +53,7 @@ class Rules(QObject):
 
     @staticmethod
     def instance():
-        if Rules.__instance == None:
+        if Rules.__instance is None:
             Rules.__instance = Rules()
         return Rules.__instance
 
@@ -70,7 +74,7 @@ class Rules(QObject):
 
     def add_rules(self, addr, rules):
         try:
-            for _,r in enumerate(rules):
+            for r in rules:
                 self.add(datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                               addr,
                               r.name, r.description, str(r.enabled),
@@ -81,7 +85,7 @@ class Rules(QObject):
 
             return True
         except Exception as e:
-            print(self.LOG_TAG + " exception adding node rules to db: ", e)
+            print(f"{self.LOG_TAG} exception adding node rules to db: ", e)
             return False
 
     def delete(self, name, addr, callback):
@@ -93,10 +97,7 @@ class Rules(QObject):
         rule.operator.operand = ""
         rule.operator.data = ""
 
-        if not self._db.delete_rule(rule.name, addr):
-            return None
-
-        return rule
+        return None if not self._db.delete_rule(rule.name, addr) else rule
 
     def delete_by_field(self, field, values):
         return self._db.delete_rules_by_field(field, values)
@@ -115,7 +116,7 @@ class Rules(QObject):
     def rule_to_json(self, node, rule_name):
         try:
             records = self._db.get_rule(rule_name, node)
-            if records == None or records == -1:
+            if records is None or records == -1:
                 return None
             if not records.next():
                 return None
@@ -135,15 +136,15 @@ class Rules(QObject):
                 return False
 
             rule = Rule.new_from_records(records)
-            rulesdir = outdir + "/" + node
+            rulesdir = f"{outdir}/{node}"
             try:
                 os.makedirs(rulesdir, 0o700)
             except Exception as e:
                 print("exception creating dirs:", e)
             rulename = rule.name
             if ".json" not in rulename:
-                rulename = rulename + ".json"
-            with open(rulesdir  + "/" + rulename, 'w') as jsfile:
+                rulename = f"{rulename}.json"
+            with open(f"{rulesdir}/{rulename}", 'w') as jsfile:
                 actual_json_text = MessageToJson(rule)
                 jsfile.write( actual_json_text )
 
@@ -158,22 +159,22 @@ class Rules(QObject):
         A new directory per node will be created.
         """
         records = self._db.get_rules(node)
-        if records == None:
+        if records is None:
             return False
 
         try:
             while records.next() != False:
                 rule = Rule.new_from_records(records)
 
-                rulesdir = outdir + "/" + node
+                rulesdir = f"{outdir}/{node}"
                 try:
                     os.makedirs(rulesdir, 0o700)
                 except:
                     pass
                 rulename = rule.name
                 if ".json" not in rulename:
-                    rulename = rulename + ".json"
-                with open(rulesdir  + "/" + rulename, 'w') as jsfile:
+                    rulename = f"{rulename}.json"
+                with open(f"{rulesdir}/{rulename}", 'w') as jsfile:
                     actual_json_text = MessageToJson(rule)
                     jsfile.write( actual_json_text )
 
@@ -190,7 +191,7 @@ class Rules(QObject):
         try:
             rules = []
             for rulename in os.listdir(rulesdir):
-                with open(rulesdir  + "/" + rulename, 'r') as f:
+                with open(f"{rulesdir}/{rulename}", 'r') as f:
                     jsrule = f.read()
                     pb_rule = Parse(text=jsrule, message=ui_pb2.Rule(), ignore_unknown_fields=True)
                     rules.append(pb_rule)

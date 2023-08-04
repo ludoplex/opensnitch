@@ -25,7 +25,7 @@ class Rules(QObject):
         """Add a new rule to the corresponding table on the given node
         """
         node = self._nodes.get_node(addr)
-        if node == None or not 'firewall' in node:
+        if node is None or 'firewall' not in node:
             return False, QC.translate("firewall", "rule not found by its ID.")
         if self.is_duplicated(addr, rule):
             return False, QC.translate("firewall", "duplicated.")
@@ -33,10 +33,10 @@ class Rules(QObject):
         for sdx, n in enumerate(node['firewall'].SystemRules):
             for cdx, c in enumerate(n.Chains):
                 if c.Name == rule.Name and \
-                        c.Hook == rule.Hook and \
-                        c.Table == rule.Table and \
-                        c.Family == rule.Family and \
-                        c.Type == rule.Type:
+                            c.Hook == rule.Hook and \
+                            c.Table == rule.Table and \
+                            c.Family == rule.Family and \
+                            c.Type == rule.Type:
                     node['firewall'].SystemRules[sdx].Chains[cdx].Rules.extend([rule.Rules[0]])
                     node['fwrules'][rule.Rules[0].UUID] = rule
                     self._nodes.add_fw_config(addr, node['firewall'])
@@ -51,7 +51,7 @@ class Rules(QObject):
         """Insert a new rule to the corresponding table on the given node
         """
         node = self._nodes.get_node(addr)
-        if node == None or not 'firewall' in node:
+        if node is None or 'firewall' not in node:
             return False, QC.translate("firewall", "this node doesn't have a firewall configuration, review it.")
         if self.is_duplicated(addr, rule):
             return False, QC.translate("firewall", "duplicated")
@@ -59,10 +59,10 @@ class Rules(QObject):
         for sdx, n in enumerate(node['firewall'].SystemRules):
             for cdx, c in enumerate(n.Chains):
                 if c.Name == rule.Name and \
-                        c.Hook == rule.Hook and \
-                        c.Table == rule.Table and \
-                        c.Family == rule.Family and \
-                        c.Type == rule.Type:
+                            c.Hook == rule.Hook and \
+                            c.Table == rule.Table and \
+                            c.Family == rule.Family and \
+                            c.Type == rule.Type:
                     if hasattr(node['firewall'].SystemRules[sdx].Chains[cdx].Rules, "insert"):
                         node['firewall'].SystemRules[sdx].Chains[cdx].Rules.insert(int(position), rule.Rules[0])
                     else:
@@ -79,7 +79,7 @@ class Rules(QObject):
 
     def update(self, addr, uuid, rule):
         node = self._nodes.get_node(addr)
-        if node == None or not 'firewall' in node:
+        if node is None or 'firewall' not in node:
             return False, QC.translate("firewall", "this node doesn't have a firewall configuration, review it.")
         for sdx, n in enumerate(node['firewall'].SystemRules):
             for cdx, c in enumerate(n.Chains):
@@ -106,7 +106,7 @@ class Rules(QObject):
 
     def delete(self, addr, uuid):
         node = self._nodes.get_node(addr)
-        if node == None or not 'firewall' in node:
+        if node is None or 'firewall' not in node:
             return False, None
         for sdx, n in enumerate(node['firewall'].SystemRules):
             for cdx, c in enumerate(n.Chains):
@@ -129,14 +129,13 @@ class Rules(QObject):
     def get_by_node(self, addr):
         rules = []
         node = self._nodes.get_node(addr)
-        if node == None:
+        if node is None:
             return rules
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return rules
         for u in node['firewall'].SystemRules:
             for c in u.Chains:
-                for r in c.Rules:
-                    rules.append(Rules.to_array(addr, c, r))
+                rules.extend(Rules.to_array(addr, c, r) for r in c.Rules)
         return rules
 
 
@@ -148,9 +147,9 @@ class Rules(QObject):
         so a click on the down button sums +1, a click on the up button rest -1
         """
         node = self._nodes.get_node(addr)
-        if node == None:
+        if node is None:
             return
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return
         for sdx, c in enumerate(node['firewall'].SystemRules):
             for cdx, u in enumerate(c.Chains):
@@ -184,17 +183,17 @@ class Rules(QObject):
         orig_uuid = temp_c.Rules[0].UUID
         temp_c.Rules[0].UUID = ""
         node = self._nodes.get_node(addr)
-        if node == None:
+        if node is None:
             return False
-        if not 'firewall' in node:
+        if 'firewall' not in node:
             return False
         for n in node['firewall'].SystemRules:
             for c in n.Chains:
                 if c.Name == temp_c.Name and \
-                        c.Hook == temp_c.Hook and \
-                        c.Table == temp_c.Table and \
-                        c.Family == temp_c.Family and \
-                        c.Type == temp_c.Type:
+                            c.Hook == temp_c.Hook and \
+                            c.Table == temp_c.Table and \
+                            c.Family == temp_c.Family and \
+                            c.Type == temp_c.Type:
                     for rdx, r in enumerate(c.Rules):
                         uuid = c.Rules[rdx].UUID
                         c.Rules[rdx].UUID = ""
@@ -216,10 +215,7 @@ class Rules(QObject):
             target_parms=""
             ):
         rule = ui_pb2.FwRule()
-        if _uuid == "":
-            rule.UUID = str(uuid.uuid1())
-        else:
-            rule.UUID = _uuid
+        rule.UUID = str(uuid.uuid1()) if _uuid == "" else _uuid
         rule.Enabled = enabled
         rule.Description = description
         if expressions != None:
@@ -265,31 +261,34 @@ class Rules(QObject):
 
     @staticmethod
     def to_array(addr, chain, rule):
-        cols = []
-        cols.append(rule.UUID)
-        cols.append(addr)
-        cols.append(chain.Name)
-        cols.append(chain.Table)
-        cols.append(chain.Family)
-        cols.append(chain.Hook)
-        cols.append(str(rule.Enabled))
-        cols.append(rule.Description)
-        exprs = ""
-        for e in rule.Expressions:
-            exprs += "{0} {1}".format(
+        exprs = "".join(
+            "{0} {1}".format(
                 e.Statement.Name,
                 "".join(
                     [
                         "{0} {1}{2} ".format(
                             h.Key,
-                            e.Statement.Op + " " if e.Statement.Op != Operator.EQUAL.value else "",
-                            "\"{0}\"".format(h.Value) if h.Key == ExprLog.PREFIX.value else h.Value
-                        ) for h in e.Statement.Values
+                            f"{e.Statement.Op} "
+                            if e.Statement.Op != Operator.EQUAL.value
+                            else "",
+                            "\"{0}\"".format(h.Value)
+                            if h.Key == ExprLog.PREFIX.value
+                            else h.Value,
+                        )
+                        for h in e.Statement.Values
                     ]
-                )
+                ),
             )
-        cols.append(exprs)
-        cols.append(rule.Target)
-        cols.append(rule.TargetParameters)
-
-        return cols
+            for e in rule.Expressions
+        )
+        return [
+            rule.UUID,
+            addr,
+            chain.Name,
+            chain.Table,
+            chain.Family,
+            chain.Hook,
+            str(rule.Enabled),
+            rule.Description,
+            *(exprs, rule.Target, rule.TargetParameters),
+        ]

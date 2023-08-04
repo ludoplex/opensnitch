@@ -9,7 +9,7 @@ from opensnitch.nodes import Nodes
 from opensnitch.desktop_parser import LinuxDesktopParser
 from opensnitch.utils import Message, Icons
 
-DIALOG_UI_PATH = "%s/../res/process_details.ui" % os.path.dirname(sys.modules[__name__].__file__)
+DIALOG_UI_PATH = f"{os.path.dirname(sys.modules[__name__].__file__)}/../res/process_details.ui"
 class ProcessDetailsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0]):
 
     LOG_TAG = "[ProcessDetails]: "
@@ -211,7 +211,7 @@ class ProcessDetailsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0])
             self._nid = self._nodes.send_notification(self._pids[self._pid], noti, self._notification_callback)
             self._notifications_sent[self._nid] = noti
         except Exception as e:
-            print(self.LOG_TAG + "exception starting monitoring: ", e)
+            print(f"{self.LOG_TAG}exception starting monitoring: ", e)
 
     def _stop_monitoring(self):
         if self._pid == "":
@@ -231,8 +231,8 @@ class ProcessDetailsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0])
             proc = json.loads(data)
             self._load_app_icon(proc['Path'])
             if self._app_name != None:
-                self.labelProcName.setText("<b>" + self._app_name + "</b>")
-                self.labelProcName.setToolTip("<b>" + self._app_name + "</b>")
+                self.labelProcName.setText(f"<b>{self._app_name}</b>")
+                self.labelProcName.setToolTip(f"<b>{self._app_name}</b>")
 
             #if proc['Path'] not in proc['Args']:
             #    proc['Args'].insert(0, proc['Path'])
@@ -265,7 +265,7 @@ class ProcessDetailsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0])
             self._data_loaded = True
 
         except Exception as e:
-            print(self.LOG_TAG + "exception loading data: ", e)
+            print(f"{self.LOG_TAG}exception loading data: ", e)
 
     def _load_app_icon(self, proc_path):
         if self._app_icon != None:
@@ -277,7 +277,7 @@ class ProcessDetailsDialog(QtWidgets.QDialog, uic.loadUiType(DIALOG_UI_PATH)[0])
         pixmap = icon.pixmap(icon.actualSize(QtCore.QSize(48, 48)))
         self.labelProcIcon.setPixmap(pixmap)
 
-        if self._app_name == None:
+        if self._app_name is None:
             self._app_name = proc_path
 
     def _load_iostats(self, iostats):

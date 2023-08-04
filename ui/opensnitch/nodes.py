@@ -21,7 +21,7 @@ class Nodes(QObject):
 
     @staticmethod
     def instance():
-        if Nodes.__instance == None:
+        if Nodes.__instance is None:
             Nodes.__instance = Nodes()
         return Nodes.__instance
 
@@ -39,7 +39,7 @@ class Nodes(QObject):
     def add(self, _peer, client_config=None):
         try:
             proto, addr = self.get_addr(_peer)
-            peer = proto+":"+addr
+            peer = f"{proto}:{addr}"
             if peer not in self._nodes:
                 self._nodes[peer] = {
                         'notifications': Queue(),
@@ -86,11 +86,11 @@ class Nodes(QObject):
         try:
             self._rules.add_rules(addr, rules)
         except Exception as e:
-            print(self.LOG_TAG + " exception adding node to db: ", e)
+            print(f"{self.LOG_TAG} exception adding node to db: ", e)
 
     def delete_rule(self, rule_name, addr, callback):
         deleted_rule = self._rules.delete(rule_name, addr, callback)
-        if deleted_rule == None:
+        if deleted_rule is None:
             print(self.LOG_TAG, "error deleting rule", rule_name)
             return
 
@@ -116,7 +116,7 @@ class Nodes(QObject):
 
     def import_rules(self, addr=None, rulesdir="", callback=None):
         rules_list = self._rules.import_rules(rulesdir)
-        if rules_list == None:
+        if rules_list is None:
             return None, None, None
 
         notif = ui_pb2.Notification(
@@ -143,7 +143,7 @@ class Nodes(QObject):
     def delete(self, peer):
         try:
             proto, addr = self.get_addr(peer)
-            addr = "%s:%s" % (proto, addr)
+            addr = f"{proto}:{addr}"
             # Force the node to get one new item from queue,
             # in order to loop and exit.
             self._nodes[addr]['notifications'].put(None)
@@ -170,7 +170,7 @@ class Nodes(QObject):
         try:
             return self._nodes[addr]['data'].config
         except Exception as e:
-            print(self.LOG_TAG + " exception get_node_config(): ", e)
+            print(f"{self.LOG_TAG} exception get_node_config(): ", e)
             return None
 
     def get_client_config(self, client_config):
@@ -220,7 +220,7 @@ class Nodes(QObject):
                     self._nodes[c]['notifications'].task_done()
                     notlist.append(notif)
         except Exception as e:
-            print(self.LOG_TAG + " exception get_notifications(): ", e)
+            print(f"{self.LOG_TAG} exception get_notifications(): ", e)
 
         return notlist
 
@@ -228,14 +228,14 @@ class Nodes(QObject):
         try:
             self._nodes[addr]['data'].config = config
         except Exception as e:
-            print(self.LOG_TAG + " exception saving node config: ", e, addr, config)
+            print(f"{self.LOG_TAG} exception saving node config: ", e, addr, config)
 
     def save_nodes_config(self, config):
         try:
             for c in self._nodes:
                 self._nodes[c]['data'].config = config
         except Exception as e:
-            print(self.LOG_TAG + " exception saving nodes config: ", e, config)
+            print(f"{self.LOG_TAG} exception saving nodes config: ", e, config)
 
     def change_node_config(self, addr, config, _callback):
         _cfg = json.dumps(config, indent="    ")
@@ -255,7 +255,7 @@ class Nodes(QObject):
 
     def firewall(self, not_type=ui_pb2.ENABLE_INTERCEPTION, addr=None, callback=None):
         noti = ui_pb2.Notification(clientName="", serverName="", type=not_type, data="", rules=[])
-        if addr == None:
+        if addr is None:
             nid = self.send_notifications(noti, callback)
         else:
             nid = self.send_notification(addr, noti, callback)
@@ -284,7 +284,12 @@ class Nodes(QObject):
 
             self._nodes[addr]['notifications'].put(notification)
         except Exception as e:
-            print(self.LOG_TAG + " exception sending notification: ", e, addr, notification)
+            print(
+                f"{self.LOG_TAG} exception sending notification: ",
+                e,
+                addr,
+                notification,
+            )
             if callback_signal != None:
                 callback_signal.emit(
                     ui_pb2.NotificationReply(
@@ -310,13 +315,13 @@ class Nodes(QObject):
                     'type': notification.type
                     }
         except Exception as e:
-            print(self.LOG_TAG + " exception sending notifications: ", e, notification)
+            print(f"{self.LOG_TAG} exception sending notifications: ", e, notification)
 
         return notification.id
 
     def reply_notification(self, addr, reply):
         try:
-            if reply == None:
+            if reply is None:
                 print(self.LOG_TAG, " reply notification None")
                 return
 
@@ -342,18 +347,20 @@ class Nodes(QObject):
     def update(self, peer, status=ONLINE):
         try:
             proto, addr = self.get_addr(peer)
-            self._db.update("nodes",
-                    "hostname=?,version=?,last_connection=?,status=?",
-                    (
-                        self._nodes[proto+":"+addr]['data'].name,
-                        self._nodes[proto+":"+addr]['data'].version,
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        status,
-                        "{0}:{1}".format(proto, addr)),
-                        "addr=?"
-                    )
+            self._db.update(
+                "nodes",
+                "hostname=?,version=?,last_connection=?,status=?",
+                (
+                    self._nodes[f"{proto}:{addr}"]['data'].name,
+                    self._nodes[f"{proto}:{addr}"]['data'].version,
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    status,
+                    "{0}:{1}".format(proto, addr),
+                ),
+                "addr=?",
+            )
         except Exception as e:
-            print(self.LOG_TAG + " exception updating DB: ", e, peer)
+            print(f"{self.LOG_TAG} exception updating DB: ", e, peer)
 
     def update_all(self, status=OFFLINE):
         try:
@@ -369,13 +376,13 @@ class Nodes(QObject):
                             "addr=?"
                         )
         except Exception as e:
-            print(self.LOG_TAG + " exception updating nodes: ", e)
+            print(f"{self.LOG_TAG} exception updating nodes: ", e)
 
     def reset_status(self):
         try:
             self._db.update("nodes", "status=?", (self.OFFLINE,))
         except Exception as e:
-            print(self.LOG_TAG + " exception resetting nodes status: ", e)
+            print(f"{self.LOG_TAG} exception resetting nodes status: ", e)
 
     def reload_fw(self, addr, fw_config, callback):
         notif = ui_pb2.Notification(
